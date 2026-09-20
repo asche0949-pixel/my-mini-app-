@@ -6,8 +6,8 @@ from flask_cors import CORS
 BOT_TOKEN = "8856484714:AAGgssIq-QLAxiZdvOpSEt1cBiqlSwXRjgE"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# የአድሚን ቴሌግራም ID
-ADMIN_ID = "YOUR_TELEGRAM_ID"
+# የአንተ ቴሌግራም ID (ብር ማውጣት ሲጠየቅ መልእክት በቀጥታ ለአንተ ይደርሳል)
+ADMIN_ID = "8556328355"
 
 app = Flask(__name__)
 CORS(app)
