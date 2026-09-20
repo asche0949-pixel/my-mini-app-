@@ -1,27 +1,36 @@
 <!DOCTYPE html>
-<html lang="am">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FulusApp</title>
+    <title>Plus App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --bg-color: #0d1117;
             --card-bg: #161b22;
-            --primary-color: #2ea043;
-            --text-color: #ffffff;
-            --text-secondary: #8b949e;
-            --border-color: #30363d;
-            --danger-color: #da3633;
+            --primary-green: #00c853;
+            --primary-hover: #00b248;
+            --text-white: #ffffff;
+            --text-gray: #8b949e;
+            --border-color: #21262d;
+            --streak-circle: #21262d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
+            color: var(--text-white);
             padding: 16px;
+            padding-bottom: 80px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -29,203 +38,428 @@
 
         .container {
             width: 100%;
-            max-width: 450px;
+            max-width: 440px;
             display: flex;
             flex-direction: column;
             gap: 16px;
         }
 
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
+        .tab-content {
+            display: none;
+            width: 100%;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            gap: 16px;
         }
 
-        .balance-title {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Top Green Balance Card */
+        .balance-card {
+            background-color: var(--primary-green);
+            border-radius: 16px;
+            padding: 20px 18px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .balance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0.9;
         }
 
         .balance-amount {
             font-size: 32px;
-            font-weight: bold;
-            color: var(--primary-color);
+            font-weight: 800;
+            margin: 10px 0 16px 0;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+        .btn-withdraw {
+            background-color: #ffffff;
+            color: #0b1a10;
+            border: none;
+            border-radius: 25px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
             width: 100%;
         }
 
-        .stat-card {
+        /* Daily Streak Card */
+        .streak-card {
             background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
 
-        .stat-val {
+        .streak-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .streak-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fire-icon {
+            font-size: 24px;
+            background: #271e16;
+            padding: 6px 10px;
+            border-radius: 10px;
+        }
+
+        .streak-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .streak-sub {
+            font-size: 11px;
+            color: var(--text-gray);
+            margin-top: 2px;
+        }
+
+        .streak-days-count {
+            text-align: right;
             font-size: 18px;
             font-weight: bold;
         }
 
-        .stat-label {
-            font-size: 12px;
-            color: var(--text-secondary);
+        .streak-days-count span {
+            display: block;
+            font-size: 10px;
+            color: var(--text-gray);
+            font-weight: normal;
         }
 
-        .section-title {
-            font-size: 16px;
+        /* Streak Grid Circles */
+        .streak-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            text-align: center;
+            margin: 6px 0;
+        }
+
+        .streak-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .streak-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background-color: var(--streak-circle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
             font-weight: 600;
-            margin: 8px 0;
-            align-self: flex-start;
+            color: var(--text-gray);
+            border: 1.5px solid transparent;
         }
 
-        .btn {
-            background-color: var(--primary-color);
+        .streak-circle.active {
+            border-color: var(--primary-green);
+            color: var(--primary-green);
+            background-color: #0b1f13;
+        }
+
+        .streak-circle.claimed {
+            background-color: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        .streak-reward {
+            font-size: 9px;
+            color: var(--text-gray);
+            white-space: nowrap;
+        }
+
+        .progress-wrap {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-gray);
+            margin-top: 4px;
+        }
+
+        .next-reward-banner {
+            background-color: #0e2719;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: var(--text-gray);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .next-reward-banner b {
+            color: var(--primary-green);
+        }
+
+        .btn-checkin {
+            background-color: var(--primary-green);
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 12px 20px;
+            border-radius: 12px;
+            padding: 14px;
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             width: 100%;
-            transition: 0.2s;
         }
 
-        .btn:disabled {
-            background-color: var(--border-color);
-            color: var(--text-secondary);
+        .btn-checkin:disabled {
+            background-color: #21262d;
+            color: #8b949e;
             cursor: not-allowed;
         }
 
-        .task-item {
+        /* Generic Card Styling */
+        .card {
             background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 12px;
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 100%;
-            box-sizing: border-box;
+            background: #11151c;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
         }
 
-        .task-info {
-            text-align: left;
-        }
-
-        .task-title {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .task-reward {
+        .btn-sm {
+            background-color: var(--primary-green);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
             font-size: 12px;
-            color: var(--primary-color);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-sm-secondary {
+            background-color: #21262d;
+            margin-right: 6px;
         }
 
         .input-group {
-            width: 100%;
-            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
             text-align: left;
         }
 
         .input-group label {
-            display: block;
             font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
+            color: var(--text-gray);
         }
 
         .input-group input, .input-group select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
-            background: #0d1117;
+            background-color: #0d1117;
             color: white;
-            box-sizing: border-box;
+            outline: none;
         }
 
-        .msg-box {
-            font-size: 13px;
-            margin-top: 8px;
-            min-height: 18px;
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: #0b0e14;
+            border-top: 1px solid #161b22;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            color: var(--text-gray);
+            cursor: pointer;
+            gap: 4px;
+        }
+
+        .nav-item.active {
+            color: var(--primary-green);
+        }
+
+        .nav-icon {
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Balance Card -->
-        <div class="card">
-            <div class="balance-title">ጠቅላላ ሂሳብ</div>
-            <div class="balance-amount"><span id="balance">0.00</span> ETB</div>
+        
+        <!-- HOME TAB -->
+        <div id="tab-home" class="tab-content active">
+            <!-- Available Balance Card -->
+            <div class="balance-card">
+                <div class="balance-header">
+                    <span>Available Balance</span>
+                    <span>💳</span>
+                </div>
+                <div class="balance-amount">ETB <span id="balance">0.00</span></div>
+                <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
+            </div>
+
+            <!-- Daily Streak Card -->
+            <div class="streak-card">
+                <div class="streak-header">
+                    <div class="streak-title-wrap">
+                        <div class="fire-icon">🔥</div>
+                        <div>
+                            <div class="streak-title">Daily Streak</div>
+                            <div class="streak-sub">Keep earning every day</div>
+                        </div>
+                    </div>
+                    <div class="streak-days-count">
+                        <span id="streak-val">0</span>
+                        <span>/ 7 days</span>
+                    </div>
+                </div>
+
+                <!-- 7-Days Circles -->
+                <div class="streak-grid">
+                    <div class="streak-col"><div class="streak-circle active" id="day-1">1</div><div class="streak-reward">2 ETB</div></div>
+                    <div class="streak-col"><div class="streak-circle" id="day-2">2</div><div class="streak-reward">4 ETB</div></div>
+                    <div class="streak-col"><div class="streak-circle" id="day-3">3</div><div class="streak-reward">5 ETB</div></div>
+                    <div class="streak-col"><div class="streak-circle" id="day-4">4</div><div class="streak-reward">7 ETB</div></div>
+                    <div class="streak-col"><div class="streak-circle" id="day-5">5</div><div class="streak-reward">9 ETB</div></div>
+                    <div class="streak-col"><div class="streak-circle" id="day-6">6</div><div class="streak-reward">11 ETB</div></div>
+                    <div class="streak-col"><div class="streak-circle" id="day-7">7</div><div class="streak-reward">12 ETB</div></div>
+                </div>
+
+                <div class="progress-wrap">
+                    <span>Progress</span>
+                    <span><span id="streak-progress">0</span> / 50 ETB</span>
+                </div>
+
+                <div class="next-reward-banner">
+                    🎁 Earn <b>2 ETB</b> on your next check-in.
+                </div>
+
+                <button class="btn-checkin" id="checkinBtn" onclick="doCheckIn()">Check In</button>
+            </div>
         </div>
 
-        <!-- Stats Grid -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-val" id="invites">0</div>
-                <div class="stat-label">የተጋበዙ ሰዎች</div>
+        <!-- TASKS TAB -->
+        <div id="tab-tasks" class="tab-content">
+            <h3 style="font-size: 16px; margin-top: 4px;">Tasks</h3>
+            <div class="task-item">
+                <div>
+                    <div style="font-weight: 600; font-size: 14px;">ይፋዊ ቻናላችንን ተቀላቀሉ</div>
+                    <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
+                </div>
+                <div>
+                    <button class="btn-sm btn-sm-secondary" onclick="openChannel()">ቻናሉን ክፈት</button>
+                    <button class="btn-sm" id="verifyBtn" onclick="verifyChannel()">አረጋግጥ</button>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-val">3 ETB</div>
-                <div class="stat-label">በአንድ ግብዣ</div>
+
+            <div class="card" style="margin-top: 10px;">
+                <div style="font-weight: 600; font-size: 14px;">ጓደኞችን መጋበዣ (Referral)</div>
+                <div style="color: var(--text-gray); font-size: 12px;">ጓደኞችህን በመጋበዝ ለእያንዳንዱ ሰው 3 ETB አግኝ!</div>
+                <button class="btn-checkin" onclick="shareReferral()">የመጋበዣ ሊንክ አጋራ</button>
             </div>
         </div>
 
-        <!-- Tasks Section -->
-        <div class="section-title">ስራዎች (Tasks)</div>
-        <div class="task-item">
-            <div class="task-info">
-                <div class="task-title">ይፋዊ ቻናላችንን ተቀላቀሉ</div>
-                <div class="task-reward">+5.00 ETB</div>
+        <!-- WALLET TAB -->
+        <div id="tab-wallet" class="tab-content">
+            <h3 style="font-size: 16px; margin-top: 4px;">Withdrawal</h3>
+            <div class="card">
+                <div class="input-group">
+                    <label>የክፍያ ዘዴ</label>
+                    <select id="withdrawMethod">
+                        <option value="Telebirr">Telebirr</option>
+                        <option value="CBE">የኢትዮጵያ ንግድ ባንክ (CBE)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>ስልክ ቁጥር / የባንክ ሂሳብ</label>
+                    <input type="text" id="withdrawPhone" placeholder="09xxxxxxxx">
+                </div>
+                <div class="input-group">
+                    <label>የብር መጠን (ዝቅተኛው 60 ETB)</label>
+                    <input type="number" id="withdrawAmount" placeholder="60">
+                </div>
+                <button class="btn-checkin" onclick="submitWithdraw()">ብር አውጣ</button>
+                <div id="withdrawMsg" style="font-size: 12px; text-align: center; margin-top: 4px;"></div>
             </div>
-            <button class="btn" style="width: auto;" id="channelBtn" onclick="verifyChannel()">ተቀላቀል</button>
         </div>
 
-        <!-- Referral Section -->
-        <div class="section-title">ጓደኞችን መጋበዣ</div>
-        <div class="card">
-            <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 10px 0;">
-                ጓደኞችህን በመጋበዝ ለእያንዳንዱ ሰው 3 ብር አግኝ!
-            </p>
-            <button class="btn" onclick="shareReferral()">የመጋበዣ ሊንክ አጋራ</button>
+        <!-- INFO TAB -->
+        <div id="tab-info" class="tab-content">
+            <h3 style="font-size: 16px; margin-top: 4px;">Help & Info</h3>
+            <div class="card" style="font-size: 13px; color: var(--text-gray); line-height: 1.6;">
+                <p>• በየቀኑ Check In በማድረግ እስከ 50 ETB ተጨማሪ ገቢ ያግኙ።</p>
+                <p>• ጓደኞችዎን በመጋበዝ 3 ETB ያግኙ።</p>
+                <p>• ዝቅተኛው የማውጫ መጠን 60 ETB ሲሆን በቴሌብር እና በኢትዮጵያ ንግድ ባንክ ይከፈላል።</p>
+            </div>
         </div>
 
-        <!-- Withdraw Section -->
-        <div class="section-title">ብር ማውጣት (Withdraw)</div>
-        <div class="card">
-            <div class="input-group">
-                <label>የክፍያ ዘዴ</label>
-                <select id="withdrawMethod">
-                    <option value="Telebirr">Telebirr</option>
-                    <option value="CBE">የኢትዮጵያ ንግድ ባንክ (CBE)</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label>ስልክ ቁጥር / የባንክ ሂሳብ</label>
-                <input type="text" id="withdrawPhone" placeholder="09xxxxxxxx">
-            </div>
-            <div class="input-group">
-                <label>የብር መጠን (ዝቅተኛው 60 ETB)</label>
-                <input type="number" id="withdrawAmount" placeholder="60">
-            </div>
-            <button class="btn" onclick="submitWithdraw()">ብር አውጣ</button>
-            <div id="withdrawMsg" class="msg-box"></div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('home')">
+            <div class="nav-icon">🏠</div>
+            <div>Home</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('tasks')">
+            <div class="nav-icon">📋</div>
+            <div>Tasks</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('wallet')">
+            <div class="nav-icon">💼</div>
+            <div>Wallet</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('info')">
+            <div class="nav-icon">ℹ️</div>
+            <div>Info</div>
         </div>
     </div>
 
@@ -233,24 +467,64 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Render ላይ የሰራው ሰርቨር ሊንክ
         const API_BASE = "https://my-mini-app-sekv.onrender.com";
+        const user = tg.initDataUnsafe?.user || { id: 8556328355, first_name: "Admin" };
 
-        const user = tg.initDataUnsafe?.user || { id: 12345678, first_name: "Demo User" };
+        let currentBalance = 0.0;
+        let streak = 0;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            const tabs = ['home', 'tasks', 'wallet', 'info'];
+            const idx = tabs.indexOf(tabName);
+            if(idx !== -1) {
+                document.querySelectorAll('.bottom-nav .nav-item')[idx].classList.add('active');
+            }
+        }
 
         function fetchUserData() {
             fetch(`${API_BASE}/api/user?id=${user.id}`)
                 .then(res => res.json())
                 .then(data => {
-                    document.getElementById('balance').innerText = data.balance.toFixed(2);
-                    document.getElementById('invites').innerText = data.invites || 0;
+                    currentBalance = data.balance || 0;
+                    streak = data.streak || 0;
+                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                    document.getElementById('streak-val').innerText = streak;
+                    document.getElementById('streak-progress').innerText = Math.min(streak * 7, 50);
+
+                    if (data.tasks_done && data.tasks_done.includes("@PlusTechHub")) {
+                        const btn = document.getElementById('verifyBtn');
+                        if (btn) {
+                            btn.innerText = "ተጠናቋል ✓";
+                            btn.disabled = true;
+                        }
+                    }
                 })
                 .catch(err => console.log(err));
         }
 
+        function doCheckIn() {
+            const btn = document.getElementById('checkinBtn');
+            btn.disabled = true;
+            btn.innerText = "Claimed ✓";
+            currentBalance += 2.0;
+            streak += 1;
+            document.getElementById('balance').innerText = currentBalance.toFixed(2);
+            document.getElementById('streak-val').innerText = streak;
+            alert("🎉 እንኳን ደስ አለህ! የዛሬውን 2 ETB Check-in ወስደሃል።");
+        }
+
+        function openChannel() {
+            tg.openTelegramLink("https://t.me/PlusTechHub");
+        }
+
         function verifyChannel() {
-            const btn = document.getElementById('channelBtn');
-            btn.innerText = "በማረጋገጥ ላይ...";
+            const btn = document.getElementById('verifyBtn');
+            btn.innerText = "...";
             btn.disabled = true;
 
             fetch(`${API_BASE}/api/check_channel`, {
@@ -264,12 +538,12 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === "joined") {
-                    alert("🎉 እንኳን ደስ አለህ! ቻናሉን ስለተቀላቀልክ 5 ETB ተጨምሮልሃል።");
+                    alert("🎉 ቻናሉ ተረጋግጧል! 5 ETB ተጨምሮልሃል።");
                     btn.innerText = "ተጠናቋል ✓";
                     document.getElementById('balance').innerText = data.balance.toFixed(2);
                 } else {
                     alert("⚠️ እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ!");
-                    window.open("https://t.me/PlusTechHub", "_blank");
+                    openChannel();
                     btn.innerText = "አረጋግጥ";
                     btn.disabled = false;
                 }
@@ -293,18 +567,18 @@
             const msgBox = document.getElementById('withdrawMsg');
 
             if (!amount || amount < 60) {
-                msgBox.style.color = "var(--danger-color)";
+                msgBox.style.color = "#da3633";
                 msgBox.innerText = "ዝቅተኛው የማውጫ መጠን 60 ETB ነው!";
                 return;
             }
 
             if (!phone) {
-                msgBox.style.color = "var(--danger-color)";
+                msgBox.style.color = "#da3633";
                 msgBox.innerText = "እባክዎ ስልክ ቁጥር ያስገቡ!";
                 return;
             }
 
-            msgBox.style.color = "var(--text-secondary)";
+            msgBox.style.color = "#8b949e";
             msgBox.innerText = "በማስተናገድ ላይ...";
 
             fetch(`${API_BASE}/api/withdraw`, {
@@ -320,18 +594,16 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
-                    msgBox.style.color = "var(--primary-color)";
+                    msgBox.style.color = "#00c853";
                     msgBox.innerText = "ጥያቄዎ ተልኳል! አድሚኑ አረጋግጦ ይልክልዎታል።";
                     document.getElementById('balance').innerText = data.balance.toFixed(2);
-                    document.getElementById('withdrawAmount').value = "";
-                    document.getElementById('withdrawPhone').value = "";
                 } else {
-                    msgBox.style.color = "var(--danger-color)";
+                    msgBox.style.color = "#da3633";
                     msgBox.innerText = data.message || "ስህተት ተፈጥሯል!";
                 }
             })
             .catch(() => {
-                msgBox.style.color = "var(--danger-color)";
+                msgBox.style.color = "#da3633";
                 msgBox.innerText = "የኔትወርክ ስህተት ተፈጥሯል!";
             });
         }
