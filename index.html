@@ -55,7 +55,6 @@
             display: flex;
         }
 
-        /* Top Green Balance Card */
         .balance-card {
             background-color: var(--primary-green);
             border-radius: 16px;
@@ -97,7 +96,6 @@
             width: 100%;
         }
 
-        /* Daily Streak Card */
         .streak-card {
             background-color: var(--card-bg);
             border-radius: 16px;
@@ -150,7 +148,6 @@
             font-weight: normal;
         }
 
-        /* Streak Grid Circles */
         .streak-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -227,13 +224,6 @@
             width: 100%;
         }
 
-        .btn-checkin:disabled {
-            background-color: #21262d;
-            color: #8b949e;
-            cursor: not-allowed;
-        }
-
-        /* Generic Card Styling */
         .card {
             background-color: var(--card-bg);
             border-radius: 16px;
@@ -310,7 +300,6 @@
             text-overflow: ellipsis;
         }
 
-        /* Bottom Navigation Bar */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -342,6 +331,18 @@
         .nav-icon {
             font-size: 18px;
         }
+
+        /* Admin Request Item */
+        .req-card {
+            background: #11151c;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -350,7 +351,6 @@
         
         <!-- HOME TAB -->
         <div id="tab-home" class="tab-content active">
-            <!-- Available Balance Card -->
             <div class="balance-card">
                 <div class="balance-header">
                     <span>Available Balance</span>
@@ -360,7 +360,6 @@
                 <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
             </div>
 
-            <!-- Daily Streak Card -->
             <div class="streak-card">
                 <div class="streak-header">
                     <div class="streak-title-wrap">
@@ -376,7 +375,6 @@
                     </div>
                 </div>
 
-                <!-- 7-Days Circles -->
                 <div class="streak-grid">
                     <div class="streak-col"><div class="streak-circle active" id="day-1">1</div><div class="streak-reward">60 ETB</div></div>
                     <div class="streak-col"><div class="streak-circle" id="day-2">2</div><div class="streak-reward">4 ETB</div></div>
@@ -425,7 +423,7 @@
                 </div>
                 
                 <div style="margin-top: 8px;">
-                    <label style="font-size: 11px; color: var(--text-gray); display: block; margin-bottom: 4px;">የአንተ መጋበዣ ሊንክ (Referral Link)</label>
+                    <label style="font-size: 11px; color: var(--text-gray); display: block; margin-bottom: 4px;">የአንተ መጋበዣ ሊንክ</label>
                     <div class="copy-box">
                         <input type="text" id="refLinkInput" class="copy-input" readonly value="">
                         <button class="btn-sm" id="copyBtn" onclick="copyReferralLink()">Copy</button>
@@ -469,13 +467,14 @@
             </div>
         </div>
 
-        <!-- INFO TAB -->
-        <div id="tab-info" class="tab-content">
-            <h3 style="font-size: 16px; margin-top: 4px;">Help & Info</h3>
-            <div class="card" style="font-size: 13px; color: var(--text-gray); line-height: 1.6;">
-                <p>• በየቀኑ Check In በማድረግ ተጨማሪ ገቢ ያግኙ።</p>
-                <p>• ጓደኞችዎን በመጋበዝ ለእያንዳንዱ 3 ETB ያግኙ።</p>
-                <p>• ዝቅተኛው የማውጫ መጠን 60 ETB ሲሆን በቴሌብር እና በኢትዮጵያ ንግድ ባንክ ይከፈላል።</p>
+        <!-- ADMIN PANEL TAB (ለአንተ ብቻ የሚታይ) -->
+        <div id="tab-admin" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 16px;">👑 Admin Requests</h3>
+                <button class="btn-sm btn-sm-secondary" onclick="loadAdminRequests()">🔄 አድስ</button>
+            </div>
+            <div id="requestsList" style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="text-align: center; color: var(--text-gray); font-size: 13px;">ጥያቄዎች በመጫን ላይ...</div>
             </div>
         </div>
 
@@ -499,9 +498,9 @@
             <div class="nav-icon">💼</div>
             <div>Wallet</div>
         </div>
-        <div class="nav-item" onclick="switchTab('info')">
-            <div class="nav-icon">ℹ️</div>
-            <div>Info</div>
+        <div class="nav-item" id="adminNavItem" style="display: none;" onclick="switchTab('admin')">
+            <div class="nav-icon">👑</div>
+            <div>Admin</div>
         </div>
     </div>
 
@@ -510,6 +509,7 @@
         tg.expand();
 
         const API_BASE = "https://my-mini-app-sekv.onrender.com";
+        const ADMIN_ID = "8556328355";
         const user = tg.initDataUnsafe?.user || { id: 8556328355, first_name: "Admin" };
 
         const BOT_USERNAME = "Plus_app_bot";
@@ -520,16 +520,25 @@
 
         document.getElementById('refLinkInput').value = myReferralUrl;
 
+        // አንተ መሆንህን ካወቀ የአድሚን ታብ ያበራልሃል
+        if (String(user.id) === ADMIN_ID) {
+            document.getElementById('adminNavItem').style.display = "flex";
+        }
+
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
             
-            const tabs = ['home', 'tasks', 'invite', 'wallet', 'info'];
+            const tabs = ['home', 'tasks', 'invite', 'wallet', 'admin'];
             const idx = tabs.indexOf(tabName);
             if(idx !== -1) {
                 document.querySelectorAll('.bottom-nav .nav-item')[idx].classList.add('active');
+            }
+
+            if (tabName === 'admin') {
+                loadAdminRequests();
             }
         }
 
@@ -558,7 +567,6 @@
                 .catch(err => console.log(err));
         }
 
-        // ለሙከራ 60 ETB የሚሰጠው የ Check-in ተግባር
         function doCheckIn() {
             const btn = document.getElementById('checkinBtn');
             btn.disabled = true;
@@ -667,6 +675,57 @@
             .catch(() => {
                 msgBox.style.color = "#da3633";
                 msgBox.innerText = "የኔትወርክ ስህተት ተፈጥሯል!";
+            });
+        }
+
+        // የአድሚን ጥያቄዎችን መጫኛ
+        function loadAdminRequests() {
+            const listDiv = document.getElementById('requestsList');
+            fetch(`${API_BASE}/api/admin/requests`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 13px; padding: 20px;">ምንም የማውጣት ጥያቄ የለም።</div>`;
+                        return;
+                    }
+                    listDiv.innerHTML = "";
+                    data.slice().reverse().forEach(req => {
+                        const item = document.createElement('div');
+                        item.className = "req-card";
+                        item.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                                <span>👤 User: ${req.user_id}</span>
+                                <span style="color: var(--primary-green); font-size: 15px;">${req.amount} ETB</span>
+                            </div>
+                            <div style="color: var(--text-gray); font-size: 12px;">
+                                💳 ዘዴ: <b>${req.method}</b> | 📱 ስልክ: <b>${req.phone}</b>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                                <span style="font-size: 12px; color: ${req.status.includes('Approved') ? '#00c853' : '#e3b341'};">
+                                    ሁኔታ: ${req.status}
+                                </span>
+                                ${req.status === 'Pending' ? `<button class="btn-sm" onclick="approveReq(${req.id})">✅ Approve</button>` : ''}
+                            </div>
+                        `;
+                        listDiv.appendChild(item);
+                    });
+                })
+                .catch(() => {
+                    listDiv.innerHTML = `<div style="text-align: center; color: #da3633; font-size: 13px;">መጫን አልተቻለም፤ ሰርቨሩን ያረጋግጡ።</div>`;
+                });
+        }
+
+        function approveReq(id) {
+            fetch(`${API_BASE}/api/admin/approve`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ req_id: id })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success") {
+                    loadAdminRequests();
+                }
             });
         }
 
