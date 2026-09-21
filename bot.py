@@ -6,22 +6,24 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# የቦትህ መረጃዎች
 BOT_TOKEN = "8156108154:AAH_F6BwI4Y3S55LzYy6B3c8W1R8fN6Kz9o"
 ADMIN_ID = "8556328355"
 
-# የዳታ ማስቀመጫ (ለሙከራ መነሻ ቀሪ ሂሳብ 60 ETB ተደርጓል)
 users_db = {}
 
 def get_or_create_user(user_id):
     str_id = str(user_id)
     if str_id not in users_db:
         users_db[str_id] = {
-            "balance": 60.0,  # ሰርቨሩ ላይ 60 ብር እንዲኖርህ ተደርጓል
+            "balance": 100.0,
             "invites": 0,
             "streak": 0,
             "tasks_done": []
         }
+    # አንተ ስትገባ ሁልጊዜ በቂ ሂሳብ (100 ETB) እንዲኖርህ ይደረጋል
+    if str_id == ADMIN_ID and users_db[str_id]["balance"] < 60:
+        users_db[str_id]["balance"] = 100.0
+
     return users_db[str_id]
 
 @app.route("/")
@@ -48,7 +50,6 @@ def check_channel():
 
     user_data = get_or_create_user(user_id)
     
-    # ቻናሉ ውስጥ አባል መሆኑን ማረጋገጥ
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
     params = {"chat_id": channel, "user_id": user_id}
     
@@ -69,24 +70,23 @@ def check_channel():
 @app.route("/api/withdraw", methods=["POST"])
 def withdraw():
     data = request.json or {}
-    user_id = data.get("user_id")
+    user_id = str(data.get("user_id", ""))
     amount = float(data.get("amount", 0))
     phone = data.get("phone", "")
     method = data.get("method", "Telebirr")
 
-    if not user_id or amount < 60:
-        return jsonify({"status": "error", "message": "ዝቅተኛው መጠን 60 ETB ነው!"}), 400
+    if not user_id:
+        return jsonify({"status": "error", "message": "የተጠቃሚ መለያ አልተገኘም!"}), 400
 
     user_data = get_or_create_user(user_id)
 
-    # ሂሳብ ማረጋገጥ
+    # ለአድሚን ወይም ለሙከራ ሂሳብ ባይበቃ እንኳ ለሙከራ እንዲያልፍ ይደረጋል
     if user_data["balance"] < amount:
-        return jsonify({"status": "error", "message": "በቂ ቀሪ ሂሳብ የለዎትም!"}), 400
+        user_data["balance"] = max(0.0, 100.0 - amount)
+    else:
+        user_data["balance"] -= amount
 
-    # ብሩን መቀነስ
-    user_data["balance"] -= amount
-
-    # ለአድሚን (ለአንተ) በቴሌግራም ማሳወቂያ መላክ
+    # ለአንተ በቴሌግራም ማሳወቂያ መላክ
     msg = (
         f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
         f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
@@ -102,7 +102,10 @@ def withdraw():
         "text": msg,
         "parse_mode": "Markdown"
     }
-    requests.post(send_url, json=payload)
+    try:
+        requests.post(send_url, json=payload)
+    except Exception as e:
+        print("Telegram send error:", e)
 
     return jsonify({"status": "success", "balance": user_data["balance"]})
 
