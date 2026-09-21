@@ -10,7 +10,7 @@ BOT_TOKEN = "8156108154:AAH_F6BwI4Y3S55LzYy6B3c8W1R8fN6Kz9o"
 ADMIN_ID = "8556328355"
 
 users_db = {}
-withdraw_requests = []  # የማውጫ ጥያቄዎች የሚቀመጡበት
+withdraw_requests = []
 
 def get_or_create_user(user_id):
     str_id = str(user_id)
@@ -25,7 +25,7 @@ def get_or_create_user(user_id):
 
 @app.route("/")
 def index():
-    return "Plus App Backend is live!"
+    return "Plus App Backend is running!"
 
 @app.route("/api/user", methods=["GET"])
 def get_user():
@@ -63,7 +63,6 @@ def withdraw():
     user_data = get_or_create_user(user_id)
     user_data["balance"] = max(0.0, user_data["balance"] - amount)
 
-    # ጥያቄውን ወደ ዝርዝር ማስገባት
     req_id = len(withdraw_requests) + 1
     req_item = {
         "id": req_id,
@@ -75,28 +74,28 @@ def withdraw():
     }
     withdraw_requests.append(req_item)
 
-    # ለቴሌግራም መልእክት መሞከር
-    try:
-        msg = f"🔔 አዲስ የማውጣት ጥያቄ!\nተጠቃሚ: {user_id}\nመጠን: {amount} ETB\nስልክ: {phone}\nዘዴ: {method}"
-        requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": ADMIN_ID, "text": msg})
-    except:
-        pass
-
     return jsonify({"status": "success", "balance": user_data["balance"]})
+
+# የተጠቃሚውን ብቻ ታሪክ የሚያሳይ API
+@app.route("/api/user/history", methods=["GET"])
+def get_user_history():
+    user_id = str(request.args.get("user_id", ADMIN_ID))
+    history = [r for r in withdraw_requests if r["user_id"] == user_id]
+    return jsonify(history)
 
 # ለአድሚን ጥያቄዎችን የሚያሳይ API
 @app.route("/api/admin/requests", methods=["GET"])
-def get_requests():
+def get_admin_requests():
     return jsonify(withdraw_requests)
 
-# አድሚኑ Approve የሚያደርግበት API
+# አድሚኑ Approve ሲያደርግ ወደ Success የሚቀይር API
 @app.route("/api/admin/approve", methods=["POST"])
 def approve_request():
     data = request.json or {}
     req_id = data.get("req_id")
     for r in withdraw_requests:
         if r["id"] == req_id:
-            r["status"] = "Approved ✅"
+            r["status"] = "Success"
             break
     return jsonify({"status": "success"})
 
