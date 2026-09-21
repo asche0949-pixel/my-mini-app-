@@ -213,6 +213,12 @@
             width: 100%;
         }
 
+        .btn-checkin:disabled {
+            background-color: #21262d;
+            color: var(--text-gray);
+            cursor: not-allowed;
+        }
+
         .card {
             background-color: var(--card-bg);
             border-radius: 16px;
@@ -494,7 +500,7 @@
                     <button class="btn-sm btn-sm-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="renderHistory()">🔄 አድስ</button>
                 </div>
                 <div id="userHistoryList" style="display: flex; flex-direction: column; gap: 8px;">
-                    <!-- ታሪኮች ከሰርቨር ተጭነው እዚህ ይገባሉ -->
+                    <!-- ታሪኮች እዚህ ይገባሉ -->
                 </div>
             </div>
         </div>
@@ -543,7 +549,6 @@
         const API_BASE = "https://my-mini-app-sekv.onrender.com";
         const ADMIN_ID = "8556328355";
         
-        // የተጠቃሚውን መለያ በትክክል መለየት
         const user = tg.initDataUnsafe?.user || { id: "test_user", first_name: "User" };
         const currentUserId = String(user.id);
 
@@ -555,7 +560,6 @@
 
         document.getElementById('refLinkInput').value = myReferralUrl;
 
-        // ለአድሚን ብቻ የአድሚን ታብ ማብራት
         if (currentUserId === ADMIN_ID) {
             document.getElementById('adminNavItem').style.display = "flex";
         }
@@ -593,6 +597,16 @@
                     document.getElementById('invite-count').innerText = invites;
                     document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
 
+                    // የዛሬውን ወስዶ ከሆነ በተኑ እንዳይሰራ ማገድ (Disable)
+                    const chkBtn = document.getElementById('checkinBtn');
+                    if (data.can_checkin === false) {
+                        chkBtn.disabled = true;
+                        chkBtn.innerText = "Claimed Today ✓";
+                    } else {
+                        chkBtn.disabled = false;
+                        chkBtn.innerText = "Check In";
+                    }
+
                     if (data.tasks_done && data.tasks_done.includes("@PlusTechHub")) {
                         const btn = document.getElementById('verifyBtn');
                         if (btn) {
@@ -604,16 +618,38 @@
                 .catch(err => console.log(err));
         }
 
+        // ደህንነቱ የተጠበቀ Check-In
         function doCheckIn() {
             const btn = document.getElementById('checkinBtn');
             btn.disabled = true;
-            btn.innerText = "Claimed ✓";
-            currentBalance += 60.0;
-            streak += 1;
-            document.getElementById('balance').innerText = currentBalance.toFixed(2);
-            document.getElementById('streak-val').innerText = streak;
-            document.getElementById('streak-progress').innerText = "60";
-            alert("🎉 እንኳን ደስ አለህ! የዛሬውን 60 ETB Check-in ወስደሃል።");
+            btn.innerText = "...";
+
+            fetch(`${API_BASE}/api/checkin`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: currentUserId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    btn.innerText = "Claimed Today ✓";
+                    btn.disabled = true;
+                    currentBalance = data.balance;
+                    streak = data.streak;
+                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                    document.getElementById('streak-val').innerText = streak;
+                    document.getElementById('streak-progress').innerText = "60";
+                    alert("🎉 እንኳን ደስ አለዎት! የዛሬውን 60 ETB Check-in ወስደዋል።");
+                } else {
+                    alert(data.message || "የዛሬውን አስቀድመው ወስደዋል!");
+                    btn.innerText = "Claimed Today ✓";
+                    btn.disabled = true;
+                }
+            })
+            .catch(() => {
+                btn.innerText = "Check In";
+                btn.disabled = false;
+            });
         }
 
         function openChannel() {
@@ -665,10 +701,8 @@
             });
         }
 
-        // ታሪክን በቀጥታ ከሰርቨር የሚያመጣው ወሳኝ ክፍል (LIVE SYNC)
         function renderHistory() {
             const listDiv = document.getElementById('userHistoryList');
-            
             fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
                 .then(res => res.json())
                 .then(history => {
@@ -752,7 +786,6 @@
             });
         }
 
-        // አድሚን ገጽ
         function loadAdminRequests() {
             const listDiv = document.getElementById('requestsList');
             fetch(`${API_BASE}/api/admin/requests`)
@@ -805,7 +838,6 @@
         }
 
         fetchUserData();
-        renderHistory();
     </script>
 </body>
 </html>
