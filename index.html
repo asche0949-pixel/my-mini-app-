@@ -228,6 +228,12 @@
             gap: 12px;
         }
 
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
         .task-item {
             display: flex;
             justify-content: space-between;
@@ -243,7 +249,7 @@
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 8px 14px;
+            padding: 8px 12px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -252,6 +258,12 @@
         .btn-sm-secondary {
             background-color: #21262d;
             margin-right: 6px;
+        }
+
+        .btn-sm:disabled {
+            background-color: #1f2a24;
+            color: #4ade80;
+            cursor: default;
         }
 
         .input-group {
@@ -425,17 +437,44 @@
             </div>
         </div>
 
-        <!-- TASKS TAB -->
+        <!-- TASKS TAB (3ቱ ቻናሎች) -->
         <div id="tab-tasks" class="tab-content">
-            <h3 style="font-size: 16px;">Tasks</h3>
-            <div class="task-item">
-                <div>
-                    <div style="font-weight: 600; font-size: 14px;">ይፋዊ ቻናላችንን ተቀላቀሉ</div>
-                    <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
+            <h3 style="font-size: 16px;">ተግባራት (Tasks)</h3>
+            <div class="task-list">
+                <!-- ቻናል 1 -->
+                <div class="task-item">
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;">PlusTechHub ተቀላቀሉ</div>
+                        <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
+                    </div>
+                    <div>
+                        <button class="btn-sm btn-sm-secondary" onclick="openChannel('https://t.me/PlusTechHub')">ክፈት</button>
+                        <button class="btn-sm" id="btn_task1" onclick="claimTask('@PlusTechHub', 'btn_task1')">ተቀላቅያለሁ</button>
+                    </div>
                 </div>
-                <div>
-                    <button class="btn-sm btn-sm-secondary" onclick="openChannel()">ቻናሉን ክፈት</button>
-                    <button class="btn-sm" id="verifyBtn" onclick="verifyChannel()">አረጋግጥ</button>
+
+                <!-- ቻናል 2 -->
+                <div class="task-item">
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;">Eth Online Job ተቀላቀሉ</div>
+                        <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
+                    </div>
+                    <div>
+                        <button class="btn-sm btn-sm-secondary" onclick="openChannel('https://t.me/Eth_online_job')">ክፈት</button>
+                        <button class="btn-sm" id="btn_task2" onclick="claimTask('@Eth_online_job', 'btn_task2')">ተቀላቅያለሁ</button>
+                    </div>
+                </div>
+
+                <!-- ቻናል 3 -->
+                <div class="task-item">
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;">AlphaTech Earn ተቀላቀሉ</div>
+                        <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
+                    </div>
+                    <div>
+                        <button class="btn-sm btn-sm-secondary" onclick="openChannel('https://t.me/Alphatech_earn')">ክፈት</button>
+                        <button class="btn-sm" id="btn_task3" onclick="claimTask('@Alphatech_earn', 'btn_task3')">ተቀላቅያለሁ</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -499,9 +538,7 @@
                     <h4 style="font-size: 14px; color: var(--text-gray);">Withdrawal History</h4>
                     <button class="btn-sm btn-sm-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="renderHistory()">🔄 አድስ</button>
                 </div>
-                <div id="userHistoryList" style="display: flex; flex-direction: column; gap: 8px;">
-                    <!-- ታሪኮች እዚህ ይገባሉ -->
-                </div>
+                <div id="userHistoryList" style="display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
         </div>
 
@@ -548,11 +585,11 @@
 
         const API_BASE = "https://my-mini-app-sekv.onrender.com";
         const ADMIN_ID = "8556328355";
+        const BOT_USERNAME = "Plus_appbot";
         
         const user = tg.initDataUnsafe?.user || { id: "test_user", first_name: "User" };
         const currentUserId = String(user.id);
 
-        const BOT_USERNAME = "Plus_app_bot";
         const myReferralUrl = `https://t.me/${BOT_USERNAME}?start=ref_${currentUserId}`;
 
         let currentBalance = 0.0;
@@ -562,6 +599,27 @@
 
         if (currentUserId === ADMIN_ID) {
             document.getElementById('adminNavItem').style.display = "flex";
+        }
+
+        // በስልኩ ሜሞሪ ላይ ታሪክን ለዘላለም ማቆያ
+        function getStoredHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(`hist_${currentUserId}`) || '[]');
+            } catch(e) { return []; }
+        }
+
+        function setStoredHistory(list) {
+            localStorage.setItem(`hist_${currentUserId}`, JSON.stringify(list));
+        }
+
+        function getStoredAdminReqs() {
+            try {
+                return JSON.parse(localStorage.getItem('admin_requests_backup') || '[]');
+            } catch(e) { return []; }
+        }
+
+        function setStoredAdminReqs(list) {
+            localStorage.setItem('admin_requests_backup', JSON.stringify(list));
         }
 
         function switchTab(tabName) {
@@ -597,7 +655,6 @@
                     document.getElementById('invite-count').innerText = invites;
                     document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
 
-                    // የዛሬውን ወስዶ ከሆነ በተኑ እንዳይሰራ ማገድ (Disable)
                     const chkBtn = document.getElementById('checkinBtn');
                     if (data.can_checkin === false) {
                         chkBtn.disabled = true;
@@ -607,18 +664,23 @@
                         chkBtn.innerText = "Check In";
                     }
 
-                    if (data.tasks_done && data.tasks_done.includes("@PlusTechHub")) {
-                        const btn = document.getElementById('verifyBtn');
-                        if (btn) {
-                            btn.innerText = "ተጠናቋል ✓";
-                            btn.disabled = true;
-                        }
-                    }
+                    // የተሰሩ ተግባራትን ማሳየት
+                    const done = data.tasks_done || [];
+                    if (done.includes("@PlusTechHub")) markDone('btn_task1');
+                    if (done.includes("@Eth_online_job")) markDone('btn_task2');
+                    if (done.includes("@Alphatech_earn")) markDone('btn_task3');
                 })
                 .catch(err => console.log(err));
         }
 
-        // ደህንነቱ የተጠበቀ Check-In
+        function markDone(btnId) {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.innerText = "ተጠናቋል ✓";
+                btn.disabled = true;
+            }
+        }
+
         function doCheckIn() {
             const btn = document.getElementById('checkinBtn');
             btn.disabled = true;
@@ -652,12 +714,12 @@
             });
         }
 
-        function openChannel() {
-            tg.openTelegramLink("https://t.me/PlusTechHub");
+        function openChannel(url) {
+            tg.openTelegramLink(url);
         }
 
-        function verifyChannel() {
-            const btn = document.getElementById('verifyBtn');
+        function claimTask(channelHandle, btnId) {
+            const btn = document.getElementById(btnId);
             btn.innerText = "...";
             btn.disabled = true;
 
@@ -666,24 +728,27 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     user_id: currentUserId,
-                    channel: "@PlusTechHub"
+                    channel: channelHandle
                 })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.status === "joined") {
-                    alert("🎉 ቻናሉ ተረጋግጧል! 5 ETB ተጨምሮልሃል።");
+                    alert(`🎉 ቻናሉ ተረጋግጧል! +5.00 ETB ተጨምሮልሃል።`);
                     btn.innerText = "ተጠናቋል ✓";
-                    document.getElementById('balance').innerText = data.balance.toFixed(2);
+                    currentBalance = data.balance;
+                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                } else if (data.status === "already_claimed") {
+                    alert("ይህንን ተግባር ከዚህ በፊት አጠናቀው ብሩን ወስደዋል!");
+                    btn.innerText = "ተጠናቋል ✓";
                 } else {
-                    alert("⚠️ እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ!");
-                    openChannel();
-                    btn.innerText = "አረጋግጥ";
+                    alert("እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ!");
+                    btn.innerText = "ተቀላቅያለሁ";
                     btn.disabled = false;
                 }
             })
             .catch(() => {
-                btn.innerText = "እንደገና ሞክር";
+                btn.innerText = "ተቀላቅያለሁ";
                 btn.disabled = false;
             });
         }
@@ -703,36 +768,54 @@
 
         function renderHistory() {
             const listDiv = document.getElementById('userHistoryList');
+            let localList = getStoredHistory();
+
             fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
                 .then(res => res.json())
-                .then(history => {
-                    if (!history || history.length === 0) {
-                        listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ምንም የማውጣት ታሪክ የለም።</div>`;
-                        return;
+                .then(serverHistory => {
+                    if (Array.isArray(serverHistory) && serverHistory.length > 0) {
+                        serverHistory.forEach(sItem => {
+                            const idx = localList.findIndex(l => String(l.id) === String(sItem.id));
+                            if (idx !== -1) {
+                                localList[idx].status = sItem.status;
+                            } else {
+                                localList.push(sItem);
+                            }
+                        });
+                        setStoredHistory(localList);
                     }
-
-                    listDiv.innerHTML = "";
-                    history.slice().reverse().forEach(item => {
-                        const isSuccess = item.status === "Success";
-                        const div = document.createElement('div');
-                        div.className = "history-card";
-                        div.innerHTML = `
-                            <div>
-                                <div style="font-weight: 700; font-size: 14px;">${item.amount} ETB</div>
-                                <div style="font-size: 11px; color: var(--text-gray); margin-top: 2px;">${item.method} • ${item.phone}</div>
-                            </div>
-                            <div>
-                                <span class="${isSuccess ? 'badge-success' : 'badge-pending'}">
-                                    ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
-                                </span>
-                            </div>
-                        `;
-                        listDiv.appendChild(div);
-                    });
+                    displayHistoryItems(localList);
                 })
                 .catch(() => {
-                    listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ታሪክ መጫን አልተቻለም።</div>`;
+                    displayHistoryItems(localList);
                 });
+        }
+
+        function displayHistoryItems(history) {
+            const listDiv = document.getElementById('userHistoryList');
+            if (!history || history.length === 0) {
+                listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ምንም የማውጣት ታሪክ የለም።</div>`;
+                return;
+            }
+
+            listDiv.innerHTML = "";
+            history.slice().reverse().forEach(item => {
+                const isSuccess = item.status === "Success";
+                const div = document.createElement('div');
+                div.className = "history-card";
+                div.innerHTML = `
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px;">${item.amount} ETB</div>
+                        <div style="font-size: 11px; color: var(--text-gray); margin-top: 2px;">${item.method} • ${item.phone}</div>
+                    </div>
+                    <div>
+                        <span class="${isSuccess ? 'badge-success' : 'badge-pending'}">
+                            ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
+                        </span>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
         }
 
         function submitWithdraw() {
@@ -774,7 +857,23 @@
                     document.getElementById('balance').innerText = data.balance.toFixed(2);
                     document.getElementById('withdrawAmount').value = "";
                     document.getElementById('withdrawPhone').value = "";
-                    setTimeout(renderHistory, 500);
+
+                    const localList = getStoredHistory();
+                    const newEntry = data.request || {
+                        id: Date.now(),
+                        amount: amount,
+                        phone: phone,
+                        method: method,
+                        status: "Pending"
+                    };
+                    localList.push(newEntry);
+                    setStoredHistory(localList);
+
+                    const adminBack = getStoredAdminReqs();
+                    adminBack.push(newEntry);
+                    setStoredAdminReqs(adminBack);
+
+                    displayHistoryItems(localList);
                 } else {
                     msgBox.style.color = "#da3633";
                     msgBox.innerText = data.message || "ስህተት ተፈጥሯል!";
@@ -788,56 +887,85 @@
 
         function loadAdminRequests() {
             const listDiv = document.getElementById('requestsList');
+            let localAdmin = getStoredAdminReqs();
+
             fetch(`${API_BASE}/api/admin/requests`)
                 .then(res => res.json())
-                .then(data => {
-                    if (!data || data.length === 0) {
-                        listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 13px; padding: 20px;">ምንም የማውጣት ጥያቄ የለም።</div>`;
-                        return;
+                .then(serverReqs => {
+                    if (Array.isArray(serverReqs) && serverReqs.length > 0) {
+                        serverReqs.forEach(s => {
+                            const idx = localAdmin.findIndex(l => String(l.id) === String(s.id));
+                            if (idx !== -1) {
+                                localAdmin[idx].status = s.status;
+                            } else {
+                                localAdmin.push(s);
+                            }
+                        });
+                        setStoredAdminReqs(localAdmin);
                     }
-                    listDiv.innerHTML = "";
-                    data.slice().reverse().forEach(req => {
-                        const isSuccess = req.status === "Success";
-                        const item = document.createElement('div');
-                        item.className = "req-card";
-                        item.innerHTML = `
-                            <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                                <span>👤 User: ${req.user_id}</span>
-                                <span style="color: var(--primary-green); font-size: 15px;">${req.amount} ETB</span>
-                            </div>
-                            <div style="color: var(--text-gray); font-size: 12px;">
-                                💳 ዘዴ: <b>${req.method}</b> | 📱 ስልክ: <b>${req.phone}</b>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-                                <span style="font-size: 12px; color: ${isSuccess ? '#00c853' : '#f59e0b'};">
-                                    ሁኔታ: ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
-                                </span>
-                                ${!isSuccess ? `<button class="btn-sm" onclick="approveReq(${req.id})">✅ Approve</button>` : ''}
-                            </div>
-                        `;
-                        listDiv.appendChild(item);
-                    });
+                    displayAdminItems(localAdmin);
                 })
                 .catch(() => {
-                    listDiv.innerHTML = `<div style="text-align: center; color: #da3633; font-size: 13px;">መጫን አልተቻለም።</div>`;
+                    displayAdminItems(localAdmin);
                 });
         }
 
+        function displayAdminItems(reqs) {
+            const listDiv = document.getElementById('requestsList');
+            if (!reqs || reqs.length === 0) {
+                listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 13px; padding: 20px;">ምንም የማውጣት ጥያቄ የለም።</div>`;
+                return;
+            }
+
+            listDiv.innerHTML = "";
+            reqs.slice().reverse().forEach(req => {
+                const isSuccess = req.status === "Success";
+                const item = document.createElement('div');
+                item.className = "req-card";
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                        <span>👤 User: ${req.user_id}</span>
+                        <span style="color: var(--primary-green); font-size: 15px;">${req.amount} ETB</span>
+                    </div>
+                    <div style="color: var(--text-gray); font-size: 12px;">
+                        💳 ዘዴ: <b>${req.method}</b> | 📱 ስልክ: <b>${req.phone}</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                        <span style="font-size: 12px; color: ${isSuccess ? '#00c853' : '#f59e0b'};">
+                            ሁኔታ: ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
+                        </span>
+                        ${!isSuccess ? `<button class="btn-sm" onclick="approveReq('${req.id}')">✅ Approve</button>` : ''}
+                    </div>
+                `;
+                listDiv.appendChild(item);
+            });
+        }
+
         function approveReq(id) {
+            const localAdmin = getStoredAdminReqs();
+            const target = localAdmin.find(l => String(l.id) === String(id));
+            if (target) {
+                target.status = "Success";
+                setStoredAdminReqs(localAdmin);
+                displayAdminItems(localAdmin);
+            }
+
+            const localHist = getStoredHistory();
+            const histTarget = localHist.find(l => String(l.id) === String(id));
+            if (histTarget) {
+                histTarget.status = "Success";
+                setStoredHistory(localHist);
+            }
+
             fetch(`${API_BASE}/api/admin/approve`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ req_id: id })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === "success") {
-                    loadAdminRequests();
-                }
             });
         }
 
         fetchUserData();
+        renderHistory();
     </script>
 </body>
 </html>
