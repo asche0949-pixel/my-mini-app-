@@ -10,11 +10,11 @@ CORS(app)
 
 BOT_TOKEN = "8156108154:AAH_F6BwI4Y3S55LzYy6B3c8W1R8fN6Kz9o"
 ADMIN_ID = "8556328355"
+BOT_USERNAME = "Plus_appbot"
 WEBAPP_URL = "https://asche0949-pixel.github.io/my-mini-app-/"
 
 DATA_FILE = "database.json"
 
-# መረጃዎችን ከፋይል ማንበቢያ እና መፃፊያ (መረጃ ለዘላለም እንዳይጠፋ)
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
@@ -38,7 +38,7 @@ def get_or_create_user(db, user_id):
             "balance": 0.0,
             "invites": 0,
             "streak": 0,
-            "last_checkin": 0,  # የቼክ-ኢን ሰዓት
+            "last_checkin": 0,
             "tasks_done": []
         }
     return db["users"][str_id]
@@ -55,7 +55,7 @@ def send_telegram_message(chat_id, text, reply_markup=None):
 
 @app.route("/")
 def index():
-    return "Plus App Backend with Permanent Database is running!"
+    return "Plus App Backend is live!"
 
 @app.route("/api/user", methods=["GET"])
 def get_user():
@@ -64,15 +64,13 @@ def get_user():
     user_data = get_or_create_user(db, user_id)
     save_data(db)
     
-    # ለቼክ-ኢን 24 ሰዓት መሙላቱን ማረጋገጥ
     now = time.time()
-    can_checkin = (now - user_data.get("last_checkin", 0)) >= 86400  # 86400 ሰከንድ = 24 ሰዓት
+    can_checkin = (now - user_data.get("last_checkin", 0)) >= 86400
     
     res = dict(user_data)
     res["can_checkin"] = can_checkin
     return jsonify(res)
 
-# ደህንነቱ የተጠበቀ ዴይሊ ቼክ-ኢን (በቀን 1 ጊዜ ብቻ!)
 @app.route("/api/checkin", methods=["POST"])
 def checkin():
     data = request.json or {}
@@ -82,18 +80,17 @@ def checkin():
 
     now = time.time()
     last_check = user_data.get("last_checkin", 0)
-    cooldown = 86400  # 24 ሰዓት
+    cooldown = 86400
 
     if now - last_check < cooldown:
         remaining_hours = int((cooldown - (now - last_check)) // 3600)
         remaining_minutes = int(((cooldown - (now - last_check)) % 3600) // 60)
         return jsonify({
             "status": "error",
-            "message": f"የዛሬውን ወስደዋል! እባክዎ ከ {remaining_hours} ሰዓት ከ {remaining_minutes} ደቂቃ በኋላ ይሞክሩ።",
+            "message": f"የዛሬውን ወስደዋል! ከ {remaining_hours} ሰዓት ከ {remaining_minutes} ደቂቃ በኋላ ይሞክሩ።",
             "can_checkin": False
         }), 400
 
-    # 24 ሰዓት ካለፈው 60 ብር መስጠት
     user_data["balance"] += 60.0
     user_data["streak"] = user_data.get("streak", 0) + 1
     user_data["last_checkin"] = now
@@ -138,10 +135,9 @@ def withdraw():
 
     db = load_data()
     user_data = get_or_create_user(db, user_id)
-
     user_data["balance"] = max(0.0, user_data["balance"] - amount)
 
-    req_id = len(db["withdraw_requests"]) + 1
+    req_id = int(time.time() * 1000)
     req_item = {
         "id": req_id,
         "user_id": user_id,
@@ -149,24 +145,23 @@ def withdraw():
         "phone": phone,
         "method": method,
         "status": "Pending",
-        "timestamp": time.strftime("%Y-%m-%d %H:%M")
+        "date": time.strftime("%Y-%m-%d %H:%M")
     }
     db["withdraw_requests"].append(req_item)
     save_data(db)
 
-    # ለአድሚን ማሳወቅ
+    # ለአድሚን በቴሌግራም መላክ
     msg = (
         f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
-        f"👤 *ID:* `{user_id}`\n"
+        f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
         f"💰 *መጠን:* {amount} ETB\n"
         f"💳 *ዘዴ:* {method}\n"
         f"📱 *ስልክ:* `{phone}`"
     )
     send_telegram_message(ADMIN_ID, msg)
 
-    return jsonify({"status": "success", "balance": user_data["balance"]})
+    return jsonify({"status": "success", "balance": user_data["balance"], "request": req_item})
 
-# የተጠቃሚ ታሪክ (ከቋሚ ዳታቤዝ)
 @app.route("/api/user/history", methods=["GET"])
 def get_user_history():
     user_id = str(request.args.get("user_id", ADMIN_ID))
@@ -174,20 +169,18 @@ def get_user_history():
     history = [r for r in db["withdraw_requests"] if str(r["user_id"]) == user_id]
     return jsonify(history)
 
-# የአድሚን ጥያቄዎች (ከቋሚ ዳታቤዝ)
 @app.route("/api/admin/requests", methods=["GET"])
 def get_admin_requests():
     db = load_data()
     return jsonify(db["withdraw_requests"])
 
-# አድሚን Approve ሲያደርግ ቋሚ ማድረጊያ
 @app.route("/api/admin/approve", methods=["POST"])
 def approve_request():
     data = request.json or {}
     req_id = data.get("req_id")
     db = load_data()
     for r in db["withdraw_requests"]:
-        if r["id"] == req_id:
+        if str(r["id"]) == str(req_id):
             r["status"] = "Success"
             user_msg = f"🎉 *እንኳን ደስ አለዎት!*\nየጠየቁት {r['amount']} ETB በተሳካ ሁኔታ ተልኮልዎታል!"
             send_telegram_message(r["user_id"], user_msg)
@@ -195,7 +188,6 @@ def approve_request():
             break
     return jsonify({"status": "success"})
 
-# Webhook ለሪፈራል
 @app.route("/webhook", methods=["POST"])
 def telegram_webhook():
     update = request.json or {}
@@ -219,9 +211,9 @@ def telegram_webhook():
 
                     ref_notify = (
                         f"🎉 *አዲስ ሰው ተቀላቅሏል!*\n\n"
-                        f"👤 አንድ ተጠቃሚ በእርስዎ መጋበዣ ሊንክ ገብቷል።\n"
-                        f"💰 *+3.00 ETB* ወደ ሂሳብዎ ተጨምሯል!\n"
-                        f"💵 አጠቃላይ ሂሳብዎ: {referrer['balance']:.2f} ETB"
+                        f"👤 አንድ ተጠቃሚ በእርስዎ ሊንክ ተቀላቅሏል።\n"
+                        f"💰 *+3.00 ETB* ወደ ሂሳብዎ ገብቷል!\n"
+                        f"💵 ጠቅላላ ሂሳብዎ: {referrer['balance']:.2f} ETB"
                     )
                     send_telegram_message(referrer_id, ref_notify)
 
@@ -229,7 +221,7 @@ def telegram_webhook():
 
             welcome_text = (
                 f"👋 *እንኳን ወደ Plus App በደህና መጡ!*\n\n"
-                f"በየቀኑ Check-in በማድረግ፣ ተግባራትን በማጠናቀቅ እና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
+                f"በየቀኑ Check-in በማድረግ፣ ተግባራትን በማጠናቀቅ እና ሰዎችን በመጋበዝ ገንዘብ ያግኙ!\n\n"
                 f"ለመጀመር ከታች ያለውን *«Open App»* በተን ይጫኑ።"
             )
             keyboard = {
