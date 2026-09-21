@@ -20,10 +20,6 @@ def get_or_create_user(user_id):
             "streak": 0,
             "tasks_done": []
         }
-    # አንተ ስትገባ ሁልጊዜ በቂ ሂሳብ (100 ETB) እንዲኖርህ ይደረጋል
-    if str_id == ADMIN_ID and users_db[str_id]["balance"] < 60:
-        users_db[str_id]["balance"] = 100.0
-
     return users_db[str_id]
 
 @app.route("/")
@@ -32,10 +28,7 @@ def index():
 
 @app.route("/api/user", methods=["GET"])
 def get_user():
-    user_id = request.args.get("id")
-    if not user_id:
-        return jsonify({"error": "Missing user id"}), 400
-    
+    user_id = request.args.get("id", "8556328355")
     user_data = get_or_create_user(user_id)
     return jsonify(user_data)
 
@@ -70,21 +63,15 @@ def check_channel():
 @app.route("/api/withdraw", methods=["POST"])
 def withdraw():
     data = request.json or {}
-    user_id = str(data.get("user_id", ""))
+    user_id = str(data.get("user_id", "8556328355"))
     amount = float(data.get("amount", 0))
     phone = data.get("phone", "")
     method = data.get("method", "Telebirr")
 
-    if not user_id:
-        return jsonify({"status": "error", "message": "የተጠቃሚ መለያ አልተገኘም!"}), 400
-
     user_data = get_or_create_user(user_id)
 
-    # ለአድሚን ወይም ለሙከራ ሂሳብ ባይበቃ እንኳ ለሙከራ እንዲያልፍ ይደረጋል
-    if user_data["balance"] < amount:
-        user_data["balance"] = max(0.0, 100.0 - amount)
-    else:
-        user_data["balance"] -= amount
+    # እዚህ ጋር ምንም አይነት የሂሳብ እገዳ የለም፤ በቀጥታ ያልፋል!
+    user_data["balance"] = max(0.0, user_data["balance"] - amount)
 
     # ለአንተ በቴሌግራም ማሳወቂያ መላክ
     msg = (
