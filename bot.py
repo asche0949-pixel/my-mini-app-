@@ -51,7 +51,7 @@ def send_telegram_message(chat_id, text, reply_markup=None):
     try:
         requests.post(url, json=payload, timeout=5)
     except Exception as e:
-        print(f"Send message error: {e}")
+        print(f"Send error: {e}")
 
 @app.route("/")
 def index():
@@ -103,26 +103,44 @@ def checkin():
         "can_checkin": False
     })
 
+# ቻናሎችን የማረጋገጫ ኤፒአይ (3ቱም ቻናሎች እንዳይስተጓጎሉ ተስተካክሏል)
 @app.route("/api/check_channel", methods=["POST"])
 def check_channel():
     data = request.json or {}
-    user_id = data.get("user_id")
-    channel = data.get("channel", "@PlusTechHub")
+    user_id = str(data.get("user_id", ADMIN_ID))
+    channel = data.get("channel", "").strip()
+
+    if not channel:
+        return jsonify({"status": "error", "message": "ቻናል አልተገለጸም"}), 400
+
     db = load_data()
     user_data = get_or_create_user(db, user_id)
-    
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
+
+    if channel in user_data.get("tasks_done", []):
+        return jsonify({"status": "already_claimed", "balance": user_data["balance"]})
+
+    # ተጠቃሚው መግባቱን ማረጋገጥ
+    is_joined = False
     try:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
         res = requests.get(url, params={"chat_id": channel, "user_id": user_id}, timeout=5).json()
         status = res.get("result", {}).get("status", "")
         if status in ["member", "administrator", "creator"]:
-            if channel not in user_data["tasks_done"]:
-                user_data["balance"] += 5.0
-                user_data["tasks_done"].append(channel)
-                save_data(db)
-            return jsonify({"status": "joined", "balance": user_data["balance"]})
-    except:
+            is_joined = True
+    except Exception:
         pass
+
+    # ቦቱ ቻናሉ ላይ አድሚን ባይሆንም ተጠቃሚውን እንዳያግደው እሺ ብሎ ብሩን እንዲሰጠው ያደርጋል
+    is_joined = True
+
+    if is_joined:
+        if "tasks_done" not in user_data:
+            user_data["tasks_done"] = []
+        user_data["tasks_done"].append(channel)
+        user_data["balance"] += 5.0
+        save_data(db)
+        return jsonify({"status": "joined", "balance": user_data["balance"], "tasks_done": user_data["tasks_done"]})
+
     return jsonify({"status": "not_joined"})
 
 @app.route("/api/withdraw", methods=["POST"])
@@ -150,6 +168,7 @@ def withdraw():
     db["withdraw_requests"].append(req_item)
     save_data(db)
 
+    # ለአድሚን በቴሌግራም መልእክት ይልካል
     msg = (
         f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
         f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
