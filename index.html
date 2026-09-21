@@ -30,7 +30,7 @@
             background-color: var(--bg-color);
             color: var(--text-white);
             padding: 16px;
-            padding-bottom: 80px;
+            padding-bottom: 85px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -186,12 +186,6 @@
             background-color: #0b1f13;
         }
 
-        .streak-circle.claimed {
-            background-color: var(--primary-green);
-            color: white;
-            border-color: var(--primary-green);
-        }
-
         .streak-reward {
             font-size: 9px;
             color: var(--text-gray);
@@ -294,6 +288,27 @@
             background-color: #0d1117;
             color: white;
             outline: none;
+        }
+
+        /* Copy Link Box */
+        .copy-box {
+            display: flex;
+            gap: 8px;
+            background: #0d1117;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 8px;
+            align-items: center;
+        }
+
+        .copy-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 12px;
+            width: 100%;
+            outline: none;
+            text-overflow: ellipsis;
         }
 
         /* Bottom Navigation Bar */
@@ -399,11 +414,35 @@
                     <button class="btn-sm" id="verifyBtn" onclick="verifyChannel()">አረጋግጥ</button>
                 </div>
             </div>
+        </div>
 
-            <div class="card" style="margin-top: 10px;">
-                <div style="font-weight: 600; font-size: 14px;">ጓደኞችን መጋበዣ (Referral)</div>
-                <div style="color: var(--text-gray); font-size: 12px;">ጓደኞችህን በመጋበዝ ለእያንዳንዱ ሰው 3 ETB አግኝ!</div>
-                <button class="btn-checkin" onclick="shareReferral()">የመጋበዣ ሊንክ አጋራ</button>
+        <!-- INVITE TAB -->
+        <div id="tab-invite" class="tab-content">
+            <h3 style="font-size: 16px; margin-top: 4px;">Invite Friends</h3>
+            <div class="card">
+                <div style="font-weight: 700; font-size: 16px;">ጓደኞችህን ጋብዝ!</div>
+                <div style="color: var(--text-gray); font-size: 13px; line-height: 1.5;">
+                    ለእያንዳንዱ አንተ በጋበዝከው ሰው <b style="color: var(--primary-green);">3.00 ETB</b> ወዲያውኑ ወደ አካውንትህ ይገባል።
+                </div>
+                
+                <div style="margin-top: 8px;">
+                    <label style="font-size: 11px; color: var(--text-gray); display: block; margin-bottom: 4px;">የአንተ መጋበዣ ሊንክ (Referral Link)</label>
+                    <div class="copy-box">
+                        <input type="text" id="refLinkInput" class="copy-input" readonly value="">
+                        <button class="btn-sm" id="copyBtn" onclick="copyReferralLink()">Copy</button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-around; background: #11151c; border-radius: 10px; padding: 12px; margin-top: 10px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold;" id="invite-count">0</div>
+                        <div style="font-size: 11px; color: var(--text-gray);">የተጋበዙ ሰዎች</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: var(--primary-green);" id="invite-earned">0.00 ETB</div>
+                        <div style="font-size: 11px; color: var(--text-gray);">ያገኙት ገቢ</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -436,7 +475,7 @@
             <h3 style="font-size: 16px; margin-top: 4px;">Help & Info</h3>
             <div class="card" style="font-size: 13px; color: var(--text-gray); line-height: 1.6;">
                 <p>• በየቀኑ Check In በማድረግ እስከ 50 ETB ተጨማሪ ገቢ ያግኙ።</p>
-                <p>• ጓደኞችዎን በመጋበዝ 3 ETB ያግኙ።</p>
+                <p>• ጓደኞችዎን በመጋበዝ ለእያንዳንዱ 3 ETB ያግኙ።</p>
                 <p>• ዝቅተኛው የማውጫ መጠን 60 ETB ሲሆን በቴሌብር እና በኢትዮጵያ ንግድ ባንክ ይከፈላል።</p>
             </div>
         </div>
@@ -452,6 +491,10 @@
         <div class="nav-item" onclick="switchTab('tasks')">
             <div class="nav-icon">📋</div>
             <div>Tasks</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('invite')">
+            <div class="nav-icon">👥</div>
+            <div>Invite</div>
         </div>
         <div class="nav-item" onclick="switchTab('wallet')">
             <div class="nav-icon">💼</div>
@@ -470,8 +513,14 @@
         const API_BASE = "https://my-mini-app-sekv.onrender.com";
         const user = tg.initDataUnsafe?.user || { id: 8556328355, first_name: "Admin" };
 
+        // ትክክለኛው የቦትህ ዩዘርኔም
+        const BOT_USERNAME = "Plus_app_bot";
+        const myReferralUrl = `https://t.me/${BOT_USERNAME}?start=ref_${user.id}`;
+
         let currentBalance = 0.0;
         let streak = 0;
+
+        document.getElementById('refLinkInput').value = myReferralUrl;
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -479,7 +528,7 @@
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
             
-            const tabs = ['home', 'tasks', 'wallet', 'info'];
+            const tabs = ['home', 'tasks', 'invite', 'wallet', 'info'];
             const idx = tabs.indexOf(tabName);
             if(idx !== -1) {
                 document.querySelectorAll('.bottom-nav .nav-item')[idx].classList.add('active');
@@ -492,9 +541,13 @@
                 .then(data => {
                     currentBalance = data.balance || 0;
                     streak = data.streak || 0;
+                    const invites = data.invites || 0;
                     document.getElementById('balance').innerText = currentBalance.toFixed(2);
                     document.getElementById('streak-val').innerText = streak;
                     document.getElementById('streak-progress').innerText = Math.min(streak * 7, 50);
+
+                    document.getElementById('invite-count').innerText = invites;
+                    document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
 
                     if (data.tasks_done && data.tasks_done.includes("@PlusTechHub")) {
                         const btn = document.getElementById('verifyBtn');
@@ -554,10 +607,17 @@
             });
         }
 
-        function shareReferral() {
-            const refLink = `https://t.me/plustech_cash_bot?start=ref_${user.id}`;
-            const shareText = encodeURIComponent(`🎉 FulusApp ላይ ስራዎችን በመስራት እና ሰዎችን በመጋበዝ ገንዘብ ያግኙ! አሁኑኑ ይቀላቀሉ፦ ${refLink}`);
-            window.open(`https://t.me/share/url?url=${refLink}&text=${shareText}`, '_blank');
+        function copyReferralLink() {
+            const copyInput = document.getElementById('refLinkInput');
+            copyInput.select();
+            copyInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyInput.value).then(() => {
+                const copyBtn = document.getElementById('copyBtn');
+                copyBtn.innerText = "Copied!";
+                setTimeout(() => { copyBtn.innerText = "Copy"; }, 2000);
+            }).catch(() => {
+                alert("ሊንኩ ተገልብጧል፦ " + copyInput.value);
+            });
         }
 
         function submitWithdraw() {
@@ -597,6 +657,8 @@
                     msgBox.style.color = "#00c853";
                     msgBox.innerText = "ጥያቄዎ ተልኳል! አድሚኑ አረጋግጦ ይልክልዎታል።";
                     document.getElementById('balance').innerText = data.balance.toFixed(2);
+                    document.getElementById('withdrawAmount').value = "";
+                    document.getElementById('withdrawPhone').value = "";
                 } else {
                     msgBox.style.color = "#da3633";
                     msgBox.innerText = data.message || "ስህተት ተፈጥሯል!";
