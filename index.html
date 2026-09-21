@@ -290,7 +290,6 @@
             outline: none;
         }
 
-        /* Copy Link Box */
         .copy-box {
             display: flex;
             gap: 8px;
@@ -379,7 +378,7 @@
 
                 <!-- 7-Days Circles -->
                 <div class="streak-grid">
-                    <div class="streak-col"><div class="streak-circle active" id="day-1">1</div><div class="streak-reward">2 ETB</div></div>
+                    <div class="streak-col"><div class="streak-circle active" id="day-1">1</div><div class="streak-reward">60 ETB</div></div>
                     <div class="streak-col"><div class="streak-circle" id="day-2">2</div><div class="streak-reward">4 ETB</div></div>
                     <div class="streak-col"><div class="streak-circle" id="day-3">3</div><div class="streak-reward">5 ETB</div></div>
                     <div class="streak-col"><div class="streak-circle" id="day-4">4</div><div class="streak-reward">7 ETB</div></div>
@@ -390,11 +389,11 @@
 
                 <div class="progress-wrap">
                     <span>Progress</span>
-                    <span><span id="streak-progress">0</span> / 50 ETB</span>
+                    <span><span id="streak-progress">0</span> / 60 ETB</span>
                 </div>
 
                 <div class="next-reward-banner">
-                    🎁 Earn <b>2 ETB</b> on your next check-in.
+                    🎁 Earn <b>60 ETB</b> on your next check-in.
                 </div>
 
                 <button class="btn-checkin" id="checkinBtn" onclick="doCheckIn()">Check In</button>
@@ -474,7 +473,7 @@
         <div id="tab-info" class="tab-content">
             <h3 style="font-size: 16px; margin-top: 4px;">Help & Info</h3>
             <div class="card" style="font-size: 13px; color: var(--text-gray); line-height: 1.6;">
-                <p>• በየቀኑ Check In በማድረግ እስከ 50 ETB ተጨማሪ ገቢ ያግኙ።</p>
+                <p>• በየቀኑ Check In በማድረግ ተጨማሪ ገቢ ያግኙ።</p>
                 <p>• ጓደኞችዎን በመጋበዝ ለእያንዳንዱ 3 ETB ያግኙ።</p>
                 <p>• ዝቅተኛው የማውጫ መጠን 60 ETB ሲሆን በቴሌብር እና በኢትዮጵያ ንግድ ባንክ ይከፈላል።</p>
             </div>
@@ -513,7 +512,6 @@
         const API_BASE = "https://my-mini-app-sekv.onrender.com";
         const user = tg.initDataUnsafe?.user || { id: 8556328355, first_name: "Admin" };
 
-        // ትክክለኛው የቦትህ ዩዘርኔም
         const BOT_USERNAME = "Plus_app_bot";
         const myReferralUrl = `https://t.me/${BOT_USERNAME}?start=ref_${user.id}`;
 
@@ -544,7 +542,7 @@
                     const invites = data.invites || 0;
                     document.getElementById('balance').innerText = currentBalance.toFixed(2);
                     document.getElementById('streak-val').innerText = streak;
-                    document.getElementById('streak-progress').innerText = Math.min(streak * 7, 50);
+                    document.getElementById('streak-progress').innerText = Math.min(streak * 60, 60);
 
                     document.getElementById('invite-count').innerText = invites;
                     document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
@@ -560,15 +558,17 @@
                 .catch(err => console.log(err));
         }
 
+        // ለሙከራ 60 ETB የሚሰጠው የ Check-in ተግባር
         function doCheckIn() {
             const btn = document.getElementById('checkinBtn');
             btn.disabled = true;
             btn.innerText = "Claimed ✓";
-            currentBalance += 2.0;
+            currentBalance += 60.0;
             streak += 1;
             document.getElementById('balance').innerText = currentBalance.toFixed(2);
             document.getElementById('streak-val').innerText = streak;
-            alert("🎉 እንኳን ደስ አለህ! የዛሬውን 2 ETB Check-in ወስደሃል።");
+            document.getElementById('streak-progress').innerText = "60";
+            alert("🎉 እንኳን ደስ አለህ! የዛሬውን 60 ETB Check-in ወስደሃል።");
         }
 
         function openChannel() {
