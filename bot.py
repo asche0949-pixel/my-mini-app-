@@ -10,14 +10,14 @@ CORS(app)
 BOT_TOKEN = "8156108154:AAH_F6BwI4Y3S55LzYy6B3c8W1R8fN6Kz9o"
 ADMIN_ID = "8556328355"
 
-# ጊዜያዊ የዳታ ማስቀመጫ (ለሙከራ መነሻ ሂሳብ 60 ETB)
+# የዳታ ማስቀመጫ (ለሙከራ መነሻ ቀሪ ሂሳብ 60 ETB ተደርጓል)
 users_db = {}
 
 def get_or_create_user(user_id):
     str_id = str(user_id)
     if str_id not in users_db:
         users_db[str_id] = {
-            "balance": 60.0,  # ለሙከራ 60 ብር ተሰጥቷል
+            "balance": 60.0,  # ሰርቨሩ ላይ 60 ብር እንዲኖርህ ተደርጓል
             "invites": 0,
             "streak": 0,
             "tasks_done": []
@@ -79,13 +79,14 @@ def withdraw():
 
     user_data = get_or_create_user(user_id)
 
+    # ሂሳብ ማረጋገጥ
     if user_data["balance"] < amount:
         return jsonify({"status": "error", "message": "በቂ ቀሪ ሂሳብ የለዎትም!"}), 400
 
     # ብሩን መቀነስ
     user_data["balance"] -= amount
 
-    # ለአድሚን (ለአንተ) የቴሌግራም መልእክት መላክ
+    # ለአድሚን (ለአንተ) በቴሌግራም ማሳወቂያ መላክ
     msg = (
         f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
         f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
