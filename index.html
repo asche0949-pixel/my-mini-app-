@@ -10,6 +10,7 @@
             --bg-color: #0d1117;
             --card-bg: #161b22;
             --primary-green: #00c853;
+            --primary-hover: #00b248;
             --text-white: #ffffff;
             --text-gray: #8b949e;
             --border-color: #21262d;
@@ -286,7 +287,6 @@
             outline: none;
         }
 
-        /* የታሪክ ካርድ መልክ */
         .history-section {
             display: flex;
             flex-direction: column;
@@ -489,9 +489,12 @@
 
             <!-- WITHDRAWAL HISTORY -->
             <div class="history-section">
-                <h4 style="font-size: 14px; color: var(--text-gray);">Withdrawal History</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="font-size: 14px; color: var(--text-gray);">Withdrawal History</h4>
+                    <button class="btn-sm btn-sm-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="renderHistory()">🔄 አድስ</button>
+                </div>
                 <div id="userHistoryList" style="display: flex; flex-direction: column; gap: 8px;">
-                    <!-- ታሪኮች እዚህ ይገባሉ -->
+                    <!-- ታሪኮች ከሰርቨር ተጭነው እዚህ ይገባሉ -->
                 </div>
             </div>
         </div>
@@ -539,18 +542,21 @@
 
         const API_BASE = "https://my-mini-app-sekv.onrender.com";
         const ADMIN_ID = "8556328355";
-        const user = tg.initDataUnsafe?.user || { id: 8556328355, first_name: "User" };
+        
+        // የተጠቃሚውን መለያ በትክክል መለየት
+        const user = tg.initDataUnsafe?.user || { id: "test_user", first_name: "User" };
+        const currentUserId = String(user.id);
 
         const BOT_USERNAME = "Plus_app_bot";
-        const myReferralUrl = `https://t.me/${BOT_USERNAME}?start=ref_${user.id}`;
+        const myReferralUrl = `https://t.me/${BOT_USERNAME}?start=ref_${currentUserId}`;
 
         let currentBalance = 0.0;
         let streak = 0;
 
         document.getElementById('refLinkInput').value = myReferralUrl;
 
-        // አድሚን ከሆነ ብቻ የአድሚን ታብ ይታያል
-        if (String(user.id) === ADMIN_ID) {
+        // ለአድሚን ብቻ የአድሚን ታብ ማብራት
+        if (currentUserId === ADMIN_ID) {
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
@@ -574,7 +580,7 @@
         }
 
         function fetchUserData() {
-            fetch(`${API_BASE}/api/user?id=${user.id}`)
+            fetch(`${API_BASE}/api/user?id=${currentUserId}`)
                 .then(res => res.json())
                 .then(data => {
                     currentBalance = data.balance || 0;
@@ -623,7 +629,7 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    user_id: user.id,
+                    user_id: currentUserId,
                     channel: "@PlusTechHub"
                 })
             })
@@ -659,46 +665,40 @@
             });
         }
 
-        // ታሪክን በስልኩ ሜሞሪ ውስጥ ማስተናገድ
-        function getLocalHistory() {
-            try {
-                return JSON.parse(localStorage.getItem('my_withdraw_history') || '[]');
-            } catch(e) {
-                return [];
-            }
-        }
-
-        function saveLocalHistory(list) {
-            localStorage.setItem('my_withdraw_history', JSON.stringify(list));
-        }
-
+        // ታሪክን በቀጥታ ከሰርቨር የሚያመጣው ወሳኝ ክፍል (LIVE SYNC)
         function renderHistory() {
             const listDiv = document.getElementById('userHistoryList');
-            const history = getLocalHistory();
+            
+            fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
+                .then(res => res.json())
+                .then(history => {
+                    if (!history || history.length === 0) {
+                        listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ምንም የማውጣት ታሪክ የለም።</div>`;
+                        return;
+                    }
 
-            if (!history || history.length === 0) {
-                listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ምንም የማውጣት ታሪክ የለም።</div>`;
-                return;
-            }
-
-            listDiv.innerHTML = "";
-            history.slice().reverse().forEach(item => {
-                const isSuccess = item.status === "Success";
-                const div = document.createElement('div');
-                div.className = "history-card";
-                div.innerHTML = `
-                    <div>
-                        <div style="font-weight: 700; font-size: 14px;">${item.amount} ETB</div>
-                        <div style="font-size: 11px; color: var(--text-gray); margin-top: 2px;">${item.method} • ${item.phone}</div>
-                    </div>
-                    <div>
-                        <span class="${isSuccess ? 'badge-success' : 'badge-pending'}">
-                            ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
-                        </span>
-                    </div>
-                `;
-                listDiv.appendChild(div);
-            });
+                    listDiv.innerHTML = "";
+                    history.slice().reverse().forEach(item => {
+                        const isSuccess = item.status === "Success";
+                        const div = document.createElement('div');
+                        div.className = "history-card";
+                        div.innerHTML = `
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;">${item.amount} ETB</div>
+                                <div style="font-size: 11px; color: var(--text-gray); margin-top: 2px;">${item.method} • ${item.phone}</div>
+                            </div>
+                            <div>
+                                <span class="${isSuccess ? 'badge-success' : 'badge-pending'}">
+                                    ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
+                                </span>
+                            </div>
+                        `;
+                        listDiv.appendChild(div);
+                    });
+                })
+                .catch(() => {
+                    listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ታሪክ መጫን አልተቻለም።</div>`;
+                });
         }
 
         function submitWithdraw() {
@@ -726,7 +726,7 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    user_id: user.id,
+                    user_id: currentUserId,
                     amount: amount,
                     phone: phone,
                     method: method
@@ -740,18 +740,7 @@
                     document.getElementById('balance').innerText = data.balance.toFixed(2);
                     document.getElementById('withdrawAmount').value = "";
                     document.getElementById('withdrawPhone').value = "";
-
-                    // ታሪክ ወዲያውኑ ይመዘገባል!
-                    const currentHist = getLocalHistory();
-                    currentHist.push({
-                        id: Date.now(),
-                        amount: amount,
-                        phone: phone,
-                        method: method,
-                        status: "Pending"
-                    });
-                    saveLocalHistory(currentHist);
-                    renderHistory();
+                    setTimeout(renderHistory, 500);
                 } else {
                     msgBox.style.color = "#da3633";
                     msgBox.innerText = data.message || "ስህተት ተፈጥሯል!";
@@ -763,7 +752,7 @@
             });
         }
 
-        // የአድሚን ገጽ ተግባራት
+        // አድሚን ገጽ
         function loadAdminRequests() {
             const listDiv = document.getElementById('requestsList');
             fetch(`${API_BASE}/api/admin/requests`)
