@@ -150,7 +150,6 @@ def withdraw():
     db["withdraw_requests"].append(req_item)
     save_data(db)
 
-    # ለአድሚን በቴሌግራም መላክ
     msg = (
         f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
         f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
