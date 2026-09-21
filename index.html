@@ -10,7 +10,6 @@
             --bg-color: #0d1117;
             --card-bg: #161b22;
             --primary-green: #00c853;
-            --primary-hover: #00b248;
             --text-white: #ffffff;
             --text-gray: #8b949e;
             --border-color: #21262d;
@@ -62,7 +61,6 @@
             color: white;
             display: flex;
             flex-direction: column;
-            position: relative;
         }
 
         .balance-header {
@@ -88,10 +86,6 @@
             padding: 12px;
             font-size: 15px;
             font-weight: 700;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
             cursor: pointer;
             width: 100%;
         }
@@ -174,11 +168,10 @@
             font-size: 13px;
             font-weight: 600;
             color: var(--text-gray);
-            border: 1.5px solid transparent;
         }
 
         .streak-circle.active {
-            border-color: var(--primary-green);
+            border: 1.5px solid var(--primary-green);
             color: var(--primary-green);
             background-color: #0b1f13;
         }
@@ -186,7 +179,6 @@
         .streak-reward {
             font-size: 9px;
             color: var(--text-gray);
-            white-space: nowrap;
         }
 
         .progress-wrap {
@@ -194,7 +186,6 @@
             justify-content: space-between;
             font-size: 11px;
             color: var(--text-gray);
-            margin-top: 4px;
         }
 
         .next-reward-banner {
@@ -203,9 +194,6 @@
             padding: 10px 14px;
             font-size: 12px;
             color: var(--text-gray);
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .next-reward-banner b {
@@ -263,7 +251,6 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            text-align: left;
         }
 
         .input-group label {
@@ -297,7 +284,42 @@
             font-size: 12px;
             width: 100%;
             outline: none;
-            text-overflow: ellipsis;
+        }
+
+        /* የታሪክ ካርድ መልክ */
+        .history-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .history-card {
+            background: #161b22;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge-pending {
+            background: #382c13;
+            color: #f59e0b;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-success {
+            background: #0d2818;
+            color: #00c853;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
         }
 
         .bottom-nav {
@@ -332,7 +354,6 @@
             font-size: 18px;
         }
 
-        /* Admin Request Item */
         .req-card {
             background: #11151c;
             border: 1px solid var(--border-color);
@@ -400,7 +421,7 @@
 
         <!-- TASKS TAB -->
         <div id="tab-tasks" class="tab-content">
-            <h3 style="font-size: 16px; margin-top: 4px;">Tasks</h3>
+            <h3 style="font-size: 16px;">Tasks</h3>
             <div class="task-item">
                 <div>
                     <div style="font-weight: 600; font-size: 14px;">ይፋዊ ቻናላችንን ተቀላቀሉ</div>
@@ -415,7 +436,7 @@
 
         <!-- INVITE TAB -->
         <div id="tab-invite" class="tab-content">
-            <h3 style="font-size: 16px; margin-top: 4px;">Invite Friends</h3>
+            <h3 style="font-size: 16px;">Invite Friends</h3>
             <div class="card">
                 <div style="font-weight: 700; font-size: 16px;">ጓደኞችህን ጋብዝ!</div>
                 <div style="color: var(--text-gray); font-size: 13px; line-height: 1.5;">
@@ -445,7 +466,7 @@
 
         <!-- WALLET TAB -->
         <div id="tab-wallet" class="tab-content">
-            <h3 style="font-size: 16px; margin-top: 4px;">Withdrawal</h3>
+            <h3 style="font-size: 16px;">Withdrawal</h3>
             <div class="card">
                 <div class="input-group">
                     <label>የክፍያ ዘዴ</label>
@@ -465,9 +486,17 @@
                 <button class="btn-checkin" onclick="submitWithdraw()">ብር አውጣ</button>
                 <div id="withdrawMsg" style="font-size: 12px; text-align: center; margin-top: 4px;"></div>
             </div>
+
+            <!-- WITHDRAWAL HISTORY -->
+            <div class="history-section">
+                <h4 style="font-size: 14px; color: var(--text-gray);">Withdrawal History</h4>
+                <div id="userHistoryList" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- ታሪኮች እዚህ ይገባሉ -->
+                </div>
+            </div>
         </div>
 
-        <!-- ADMIN PANEL TAB (ለአንተ ብቻ የሚታይ) -->
+        <!-- ADMIN PANEL TAB -->
         <div id="tab-admin" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="font-size: 16px;">👑 Admin Requests</h3>
@@ -510,7 +539,7 @@
 
         const API_BASE = "https://my-mini-app-sekv.onrender.com";
         const ADMIN_ID = "8556328355";
-        const user = tg.initDataUnsafe?.user || { id: 8556328355, first_name: "Admin" };
+        const user = tg.initDataUnsafe?.user || { id: 8556328355, first_name: "User" };
 
         const BOT_USERNAME = "Plus_app_bot";
         const myReferralUrl = `https://t.me/${BOT_USERNAME}?start=ref_${user.id}`;
@@ -520,7 +549,7 @@
 
         document.getElementById('refLinkInput').value = myReferralUrl;
 
-        // አንተ መሆንህን ካወቀ የአድሚን ታብ ያበራልሃል
+        // አድሚን ከሆነ ብቻ የአድሚን ታብ ይታያል
         if (String(user.id) === ADMIN_ID) {
             document.getElementById('adminNavItem').style.display = "flex";
         }
@@ -537,7 +566,9 @@
                 document.querySelectorAll('.bottom-nav .nav-item')[idx].classList.add('active');
             }
 
-            if (tabName === 'admin') {
+            if (tabName === 'wallet') {
+                renderHistory();
+            } else if (tabName === 'admin') {
                 loadAdminRequests();
             }
         }
@@ -628,6 +659,48 @@
             });
         }
 
+        // ታሪክን በስልኩ ሜሞሪ ውስጥ ማስተናገድ
+        function getLocalHistory() {
+            try {
+                return JSON.parse(localStorage.getItem('my_withdraw_history') || '[]');
+            } catch(e) {
+                return [];
+            }
+        }
+
+        function saveLocalHistory(list) {
+            localStorage.setItem('my_withdraw_history', JSON.stringify(list));
+        }
+
+        function renderHistory() {
+            const listDiv = document.getElementById('userHistoryList');
+            const history = getLocalHistory();
+
+            if (!history || history.length === 0) {
+                listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ምንም የማውጣት ታሪክ የለም።</div>`;
+                return;
+            }
+
+            listDiv.innerHTML = "";
+            history.slice().reverse().forEach(item => {
+                const isSuccess = item.status === "Success";
+                const div = document.createElement('div');
+                div.className = "history-card";
+                div.innerHTML = `
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px;">${item.amount} ETB</div>
+                        <div style="font-size: 11px; color: var(--text-gray); margin-top: 2px;">${item.method} • ${item.phone}</div>
+                    </div>
+                    <div>
+                        <span class="${isSuccess ? 'badge-success' : 'badge-pending'}">
+                            ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
+                        </span>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
         function submitWithdraw() {
             const amount = parseFloat(document.getElementById('withdrawAmount').value);
             const phone = document.getElementById('withdrawPhone').value.trim();
@@ -667,6 +740,18 @@
                     document.getElementById('balance').innerText = data.balance.toFixed(2);
                     document.getElementById('withdrawAmount').value = "";
                     document.getElementById('withdrawPhone').value = "";
+
+                    // ታሪክ ወዲያውኑ ይመዘገባል!
+                    const currentHist = getLocalHistory();
+                    currentHist.push({
+                        id: Date.now(),
+                        amount: amount,
+                        phone: phone,
+                        method: method,
+                        status: "Pending"
+                    });
+                    saveLocalHistory(currentHist);
+                    renderHistory();
                 } else {
                     msgBox.style.color = "#da3633";
                     msgBox.innerText = data.message || "ስህተት ተፈጥሯል!";
@@ -678,7 +763,7 @@
             });
         }
 
-        // የአድሚን ጥያቄዎችን መጫኛ
+        // የአድሚን ገጽ ተግባራት
         function loadAdminRequests() {
             const listDiv = document.getElementById('requestsList');
             fetch(`${API_BASE}/api/admin/requests`)
@@ -690,6 +775,7 @@
                     }
                     listDiv.innerHTML = "";
                     data.slice().reverse().forEach(req => {
+                        const isSuccess = req.status === "Success";
                         const item = document.createElement('div');
                         item.className = "req-card";
                         item.innerHTML = `
@@ -701,17 +787,17 @@
                                 💳 ዘዴ: <b>${req.method}</b> | 📱 ስልክ: <b>${req.phone}</b>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-                                <span style="font-size: 12px; color: ${req.status.includes('Approved') ? '#00c853' : '#e3b341'};">
-                                    ሁኔታ: ${req.status}
+                                <span style="font-size: 12px; color: ${isSuccess ? '#00c853' : '#f59e0b'};">
+                                    ሁኔታ: ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
                                 </span>
-                                ${req.status === 'Pending' ? `<button class="btn-sm" onclick="approveReq(${req.id})">✅ Approve</button>` : ''}
+                                ${!isSuccess ? `<button class="btn-sm" onclick="approveReq(${req.id})">✅ Approve</button>` : ''}
                             </div>
                         `;
                         listDiv.appendChild(item);
                     });
                 })
                 .catch(() => {
-                    listDiv.innerHTML = `<div style="text-align: center; color: #da3633; font-size: 13px;">መጫን አልተቻለም፤ ሰርቨሩን ያረጋግጡ።</div>`;
+                    listDiv.innerHTML = `<div style="text-align: center; color: #da3633; font-size: 13px;">መጫን አልተቻለም።</div>`;
                 });
         }
 
@@ -730,6 +816,7 @@
         }
 
         fetchUserData();
+        renderHistory();
     </script>
 </body>
 </html>
