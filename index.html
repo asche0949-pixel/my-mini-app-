@@ -7,14 +7,14 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --card-bg: #161b22;
-            --primary-green: #00c853;
-            --primary-hover: #00b248;
+            --bg-color: #0b111e;
+            --card-bg: #131c2e;
+            --primary-blue: #0088cc;
+            --accent-blue: #24a1de;
             --text-white: #ffffff;
-            --text-gray: #8b949e;
-            --border-color: #21262d;
-            --streak-circle: #21262d;
+            --text-gray: #8fa0bc;
+            --border-color: #1f2d47;
+            --streak-circle: #172338;
         }
 
         * {
@@ -44,6 +44,106 @@
             gap: 16px;
         }
 
+        /* GATE SCREEN (የቻናሎች ማስገደጃ ገጽ) */
+        #gateScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 18px;
+            padding: 24px 0;
+            width: 100%;
+        }
+
+        .gate-logo {
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: #192742;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            border: 2px solid var(--accent-blue);
+            box-shadow: 0 0 25px rgba(36, 161, 222, 0.3);
+        }
+
+        .gate-title {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .gate-sub {
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.5;
+            padding: 0 10px;
+        }
+
+        .gate-channels-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .gate-channel-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .gate-ch-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .gate-ch-icon {
+            font-size: 20px;
+            background: #1c2b47;
+            padding: 8px;
+            border-radius: 50%;
+        }
+
+        .btn-join {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-verify-main {
+            background: linear-gradient(135deg, #0088cc, #24a1de);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            box-shadow: 0 4px 20px rgba(0, 136, 204, 0.4);
+        }
+
+        /* MAIN APP */
+        #mainApp {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            gap: 16px;
+        }
+
         .tab-content {
             display: none;
             width: 100%;
@@ -56,12 +156,13 @@
         }
 
         .balance-card {
-            background-color: var(--primary-green);
+            background: linear-gradient(135deg, #0088cc, #1868a8);
             border-radius: 16px;
             padding: 20px 18px;
             color: white;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 136, 204, 0.25);
         }
 
         .balance-header {
@@ -81,7 +182,7 @@
 
         .btn-withdraw {
             background-color: #ffffff;
-            color: #0b1a10;
+            color: #0b111e;
             border: none;
             border-radius: 25px;
             padding: 12px;
@@ -98,6 +199,7 @@
             display: flex;
             flex-direction: column;
             gap: 14px;
+            border: 1px solid var(--border-color);
         }
 
         .streak-header {
@@ -114,7 +216,7 @@
 
         .fire-icon {
             font-size: 24px;
-            background: #271e16;
+            background: #1c2b47;
             padding: 6px 10px;
             border-radius: 10px;
         }
@@ -134,6 +236,7 @@
             text-align: right;
             font-size: 18px;
             font-weight: bold;
+            color: var(--accent-blue);
         }
 
         .streak-days-count span {
@@ -169,12 +272,19 @@
             font-size: 13px;
             font-weight: 600;
             color: var(--text-gray);
+            border: 1px solid var(--border-color);
         }
 
         .streak-circle.active {
-            border: 1.5px solid var(--primary-green);
-            color: var(--primary-green);
-            background-color: #0b1f13;
+            border: 1.5px solid var(--accent-blue);
+            color: var(--accent-blue);
+            background-color: #162640;
+        }
+
+        .streak-circle.done {
+            border: 1.5px solid var(--primary-blue);
+            background-color: var(--primary-blue);
+            color: white;
         }
 
         .streak-reward {
@@ -182,15 +292,8 @@
             color: var(--text-gray);
         }
 
-        .progress-wrap {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: var(--text-gray);
-        }
-
         .next-reward-banner {
-            background-color: #0e2719;
+            background-color: #17243c;
             border-radius: 10px;
             padding: 10px 14px;
             font-size: 12px;
@@ -198,11 +301,11 @@
         }
 
         .next-reward-banner b {
-            color: var(--primary-green);
+            color: var(--accent-blue);
         }
 
         .btn-checkin {
-            background-color: var(--primary-green);
+            background: linear-gradient(135deg, #0088cc, #24a1de);
             color: white;
             border: none;
             border-radius: 12px;
@@ -214,7 +317,7 @@
         }
 
         .btn-checkin:disabled {
-            background-color: #21262d;
+            background: #172338;
             color: var(--text-gray);
             cursor: not-allowed;
         }
@@ -226,44 +329,23 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-        }
-
-        .task-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .task-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #11151c;
-            padding: 14px;
-            border-radius: 12px;
             border: 1px solid var(--border-color);
         }
 
         .btn-sm {
-            background-color: var(--primary-green);
+            background-color: var(--primary-blue);
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 8px 12px;
+            padding: 8px 14px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
         }
 
         .btn-sm-secondary {
-            background-color: #21262d;
+            background-color: #1c2b47;
             margin-right: 6px;
-        }
-
-        .btn-sm:disabled {
-            background-color: #1f2a24;
-            color: #4ade80;
-            cursor: default;
         }
 
         .input-group {
@@ -281,7 +363,7 @@
             padding: 12px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
-            background-color: #0d1117;
+            background-color: #0b111e;
             color: white;
             outline: none;
         }
@@ -289,7 +371,7 @@
         .copy-box {
             display: flex;
             gap: 8px;
-            background: #0d1117;
+            background: #0b111e;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 6px 8px;
@@ -313,7 +395,7 @@
         }
 
         .history-card {
-            background: #161b22;
+            background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 14px;
@@ -332,8 +414,8 @@
         }
 
         .badge-success {
-            background: #0d2818;
-            color: #00c853;
+            background: #0e2942;
+            color: #24a1de;
             padding: 5px 10px;
             border-radius: 6px;
             font-size: 11px;
@@ -346,9 +428,9 @@
             left: 0;
             right: 0;
             height: 60px;
-            background-color: #0b0e14;
-            border-top: 1px solid #161b22;
-            display: flex;
+            background-color: #0b111e;
+            border-top: 1px solid var(--border-color);
+            display: none;
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
@@ -365,7 +447,7 @@
         }
 
         .nav-item.active {
-            color: var(--primary-green);
+            color: var(--accent-blue);
         }
 
         .nav-icon {
@@ -373,7 +455,7 @@
         }
 
         .req-card {
-            background: #11151c;
+            background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 12px;
@@ -388,182 +470,189 @@
 
     <div class="container">
         
-        <!-- HOME TAB -->
-        <div id="tab-home" class="tab-content active">
-            <div class="balance-card">
-                <div class="balance-header">
-                    <span>Available Balance</span>
-                    <span>💳</span>
-                </div>
-                <div class="balance-amount">ETB <span id="balance">0.00</span></div>
-                <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
-            </div>
+        <!-- GATE SCREEN -->
+        <div id="gateScreen">
+            <div class="gate-logo">🎁</div>
+            <div class="gate-title">Join Our Channels</div>
+            <div class="gate-sub">You must join our official Telegram channels below to access Plus App.</div>
 
-            <div class="streak-card">
-                <div class="streak-header">
-                    <div class="streak-title-wrap">
-                        <div class="fire-icon">🔥</div>
+            <div class="gate-channels-list">
+                <div class="gate-channel-card">
+                    <div class="gate-ch-info">
+                        <div class="gate-ch-icon">📢</div>
                         <div>
-                            <div class="streak-title">Daily Streak</div>
-                            <div class="streak-sub">Keep earning every day</div>
+                            <div style="font-weight: 700; font-size: 14px;">PlusTechHub</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">Tap to join channel</div>
                         </div>
                     </div>
-                    <div class="streak-days-count">
-                        <span id="streak-val">0</span>
-                        <span>/ 7 days</span>
+                    <button class="btn-join" onclick="openChannel('https://t.me/PlusTechHub')">Join</button>
+                </div>
+
+                <div class="gate-channel-card">
+                    <div class="gate-ch-info">
+                        <div class="gate-ch-icon">📢</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px;">Eth Online Job</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">Tap to join channel</div>
+                        </div>
                     </div>
+                    <button class="btn-join" onclick="openChannel('https://t.me/Eth_online_job')">Join</button>
                 </div>
 
-                <div class="streak-grid">
-                    <div class="streak-col"><div class="streak-circle active" id="day-1">1</div><div class="streak-reward">60 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-2">2</div><div class="streak-reward">4 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-3">3</div><div class="streak-reward">5 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-4">4</div><div class="streak-reward">7 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-5">5</div><div class="streak-reward">9 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-6">6</div><div class="streak-reward">11 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-7">7</div><div class="streak-reward">12 ETB</div></div>
+                <div class="gate-channel-card">
+                    <div class="gate-ch-info">
+                        <div class="gate-ch-icon">📢</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px;">AlphaTech Earn</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">Tap to join channel</div>
+                        </div>
+                    </div>
+                    <button class="btn-join" onclick="openChannel('https://t.me/Alphatech_earn')">Join</button>
                 </div>
-
-                <div class="progress-wrap">
-                    <span>Progress</span>
-                    <span><span id="streak-progress">0</span> / 60 ETB</span>
-                </div>
-
-                <div class="next-reward-banner">
-                    🎁 Earn <b>60 ETB</b> on your next check-in.
-                </div>
-
-                <button class="btn-checkin" id="checkinBtn" onclick="doCheckIn()">Check In</button>
             </div>
+
+            <button class="btn-verify-main" id="verifyBtnMain" onclick="doVerifyGate()">✓ Verify Membership</button>
+            <div id="gateMsg" style="font-size: 12px; color: #da3633; margin-top: 4px;"></div>
         </div>
 
-        <!-- TASKS TAB (3ቱ ቻናሎች) -->
-        <div id="tab-tasks" class="tab-content">
-            <h3 style="font-size: 16px;">ተግባራት (Tasks)</h3>
-            <div class="task-list">
-                <!-- ቻናል 1 -->
-                <div class="task-item">
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">PlusTechHub ተቀላቀሉ</div>
-                        <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
+        <!-- MAIN APP -->
+        <div id="mainApp">
+            
+            <!-- HOME TAB -->
+            <div id="tab-home" class="tab-content active">
+                <div class="balance-card">
+                    <div class="balance-header">
+                        <span>Available Balance</span>
+                        <span>💳</span>
                     </div>
-                    <div>
-                        <button class="btn-sm btn-sm-secondary" onclick="openChannel('https://t.me/PlusTechHub')">ክፈት</button>
-                        <button class="btn-sm" id="btn_task1" onclick="claimTask('@PlusTechHub', 'btn_task1')">ተቀላቅያለሁ</button>
-                    </div>
+                    <div class="balance-amount">ETB <span id="balance">0.00</span></div>
+                    <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
                 </div>
 
-                <!-- ቻናል 2 -->
-                <div class="task-item">
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">Eth Online Job ተቀላቀሉ</div>
-                        <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
+                <div class="streak-card">
+                    <div class="streak-header">
+                        <div class="streak-title-wrap">
+                            <div class="fire-icon">🔥</div>
+                            <div>
+                                <div class="streak-title">Daily Streak</div>
+                                <div class="streak-sub">Keep earning every day</div>
+                            </div>
+                        </div>
+                        <div class="streak-days-count">
+                            <span id="streak-val">0</span>
+                            <span>/ 7 days</span>
+                        </div>
                     </div>
-                    <div>
-                        <button class="btn-sm btn-sm-secondary" onclick="openChannel('https://t.me/Eth_online_job')">ክፈት</button>
-                        <button class="btn-sm" id="btn_task2" onclick="claimTask('@Eth_online_job', 'btn_task2')">ተቀላቅያለሁ</button>
-                    </div>
-                </div>
 
-                <!-- ቻናል 3 -->
-                <div class="task-item">
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">AlphaTech Earn ተቀላቀሉ</div>
-                        <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
+                    <div class="streak-grid">
+                        <div class="streak-col"><div class="streak-circle active" id="day-1">1</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-2">2</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-3">3</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-4">4</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-5">5</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-6">6</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-7">7</div><div class="streak-reward">3 ETB</div></div>
                     </div>
-                    <div>
-                        <button class="btn-sm btn-sm-secondary" onclick="openChannel('https://t.me/Alphatech_earn')">ክፈት</button>
-                        <button class="btn-sm" id="btn_task3" onclick="claimTask('@Alphatech_earn', 'btn_task3')">ተቀላቅያለሁ</button>
+
+                    <div class="next-reward-banner">
+                        🎁 Earn <b>3.00 ETB</b> on your next check-in.
+                    </div>
+
+                    <button class="btn-checkin" id="checkinBtn" onclick="doCheckIn()">Check In (3.00 ETB)</button>
+                </div>
+            </div>
+
+            <!-- INVITE TAB -->
+            <div id="tab-invite" class="tab-content">
+                <h3 style="font-size: 16px;">Invite Friends</h3>
+                <div class="card">
+                    <div style="font-weight: 700; font-size: 16px;">ጓደኞችህን ጋብዝ!</div>
+                    <div style="color: var(--text-gray); font-size: 13px; line-height: 1.5;">
+                        ለእያንዳንዱ አንተ በጋበዝከው ሰው <b style="color: var(--accent-blue);">4.00 ETB</b> ወዲያውኑ ወደ አካውንትህ ይገባል።
+                    </div>
+                    
+                    <div style="margin-top: 8px;">
+                        <label style="font-size: 11px; color: var(--text-gray); display: block; margin-bottom: 4px;">የአንተ ቀጥታ ሚኒ አፕ መጋበዣ ሊንክ</label>
+                        <div class="copy-box">
+                            <input type="text" id="refLinkInput" class="copy-input" readonly value="">
+                            <button class="btn-sm" id="copyBtn" onclick="copyReferralLink()">Copy</button>
+                        </div>
+                    </div>
+
+                    <button class="btn-sm btn-sm-secondary" style="width: 100%; padding: 12px; margin-top: 6px;" onclick="shareInvite()">
+                        📲 በቴሌግራም አጋራ (Share Link)
+                    </button>
+                    
+                    <div style="display: flex; justify-content: space-around; background: #0b111e; border-radius: 10px; padding: 12px; margin-top: 10px; border: 1px solid var(--border-color);">
+                        <div style="text-align: center;">
+                            <div style="font-size: 18px; font-weight: bold; color: var(--accent-blue);" id="invite-count">0</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">የተጋበዙ ሰዎች</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 18px; font-weight: bold; color: var(--accent-blue);" id="invite-earned">0.00 ETB</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">ያገኙት ገቢ</div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- INVITE TAB -->
-        <div id="tab-invite" class="tab-content">
-            <h3 style="font-size: 16px;">Invite Friends</h3>
-            <div class="card">
-                <div style="font-weight: 700; font-size: 16px;">ጓደኞችህን ጋብዝ!</div>
-                <div style="color: var(--text-gray); font-size: 13px; line-height: 1.5;">
-                    ለእያንዳንዱ አንተ በጋበዝከው ሰው <b style="color: var(--primary-green);">3.00 ETB</b> ወዲያውኑ ወደ አካውንትህ ይገባል።
+            <!-- WALLET TAB -->
+            <div id="tab-wallet" class="tab-content">
+                <h3 style="font-size: 16px;">Withdrawal</h3>
+                <div class="card">
+                    <div style="background: #17243c; padding: 10px; border-radius: 8px; font-size: 12px; color: var(--text-gray);">
+                        📢 የክፍያ ማረጋገጫዎችን ለማየት፦ <a href="https://t.me/PlusTechHub" target="_blank" style="color: var(--accent-blue); font-weight: bold;">የክፍያ ማረጋገጫ (Proof Channel)</a> ተቀላቀሉ!
+                    </div>
+
+                    <div class="input-group">
+                        <label>የክፍያ ዘዴ</label>
+                        <select id="withdrawMethod">
+                            <option value="Telebirr">Telebirr</option>
+                            <option value="CBE">የኢትዮጵያ ንግድ ባንክ (CBE)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>ስልክ ቁጥር / የባንክ ሂሳብ</label>
+                        <input type="text" id="withdrawPhone" placeholder="09xxxxxxxx">
+                    </div>
+                    <div class="input-group">
+                        <label>የብር መጠን (ዝቅተኛው 60 ETB)</label>
+                        <input type="number" id="withdrawAmount" placeholder="60">
+                    </div>
+                    <button class="btn-checkin" onclick="submitWithdraw()">ብር አውጣ</button>
+                    <div id="withdrawMsg" style="font-size: 12px; text-align: center; margin-top: 4px;"></div>
                 </div>
-                
-                <div style="margin-top: 8px;">
-                    <label style="font-size: 11px; color: var(--text-gray); display: block; margin-bottom: 4px;">የአንተ መጋበዣ ሊንክ</label>
-                    <div class="copy-box">
-                        <input type="text" id="refLinkInput" class="copy-input" readonly value="">
-                        <button class="btn-sm" id="copyBtn" onclick="copyReferralLink()">Copy</button>
+
+                <!-- WITHDRAWAL HISTORY -->
+                <div class="history-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="font-size: 14px; color: var(--text-gray);">Withdrawal History</h4>
+                        <button class="btn-sm btn-sm-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="renderHistory()">🔄 አድስ</button>
                     </div>
-                </div>
-                
-                <div style="display: flex; justify-content: space-around; background: #11151c; border-radius: 10px; padding: 12px; margin-top: 10px;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 18px; font-weight: bold;" id="invite-count">0</div>
-                        <div style="font-size: 11px; color: var(--text-gray);">የተጋበዙ ሰዎች</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 18px; font-weight: bold; color: var(--primary-green);" id="invite-earned">0.00 ETB</div>
-                        <div style="font-size: 11px; color: var(--text-gray);">ያገኙት ገቢ</div>
-                    </div>
+                    <div id="userHistoryList" style="display: flex; flex-direction: column; gap: 8px;"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- WALLET TAB -->
-        <div id="tab-wallet" class="tab-content">
-            <h3 style="font-size: 16px;">Withdrawal</h3>
-            <div class="card">
-                <div class="input-group">
-                    <label>የክፍያ ዘዴ</label>
-                    <select id="withdrawMethod">
-                        <option value="Telebirr">Telebirr</option>
-                        <option value="CBE">የኢትዮጵያ ንግድ ባንክ (CBE)</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>ስልክ ቁጥር / የባንክ ሂሳብ</label>
-                    <input type="text" id="withdrawPhone" placeholder="09xxxxxxxx">
-                </div>
-                <div class="input-group">
-                    <label>የብር መጠን (ዝቅተኛው 60 ETB)</label>
-                    <input type="number" id="withdrawAmount" placeholder="60">
-                </div>
-                <button class="btn-checkin" onclick="submitWithdraw()">ብር አውጣ</button>
-                <div id="withdrawMsg" style="font-size: 12px; text-align: center; margin-top: 4px;"></div>
-            </div>
-
-            <!-- WITHDRAWAL HISTORY -->
-            <div class="history-section">
+            <!-- ADMIN PANEL TAB -->
+            <div id="tab-admin" class="tab-content">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="font-size: 14px; color: var(--text-gray);">Withdrawal History</h4>
-                    <button class="btn-sm btn-sm-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="renderHistory()">🔄 አድስ</button>
+                    <h3 style="font-size: 16px;">👑 Admin Requests</h3>
+                    <button class="btn-sm btn-sm-secondary" onclick="loadAdminRequests()">🔄 አድስ</button>
                 </div>
-                <div id="userHistoryList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                <div id="requestsList" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="text-align: center; color: var(--text-gray); font-size: 13px;">ጥያቄዎች በመጫን ላይ...</div>
+                </div>
             </div>
-        </div>
 
-        <!-- ADMIN PANEL TAB -->
-        <div id="tab-admin" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size: 16px;">👑 Admin Requests</h3>
-                <button class="btn-sm btn-sm-secondary" onclick="loadAdminRequests()">🔄 አድስ</button>
-            </div>
-            <div id="requestsList" style="display: flex; flex-direction: column; gap: 10px;">
-                <div style="text-align: center; color: var(--text-gray); font-size: 13px;">ጥያቄዎች በመጫን ላይ...</div>
-            </div>
         </div>
 
     </div>
 
     <!-- Bottom Navigation -->
-    <div class="bottom-nav">
+    <div class="bottom-nav" id="bottomNav">
         <div class="nav-item active" onclick="switchTab('home')">
             <div class="nav-icon">🏠</div>
             <div>Home</div>
-        </div>
-        <div class="nav-item" onclick="switchTab('tasks')">
-            <div class="nav-icon">📋</div>
-            <div>Tasks</div>
         </div>
         <div class="nav-item" onclick="switchTab('invite')">
             <div class="nav-icon">👥</div>
@@ -590,7 +679,13 @@
         const user = tg.initDataUnsafe?.user || { id: "test_user", first_name: "User" };
         const currentUserId = String(user.id);
 
-        const myReferralUrl = `https://t.me/${BOT_USERNAME}?start=ref_${currentUserId}`;
+        const myReferralUrl = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
+
+        let rawParam = tg.initDataUnsafe?.start_param || "";
+        let referrerId = "";
+        if (rawParam.startsWith("ref_")) {
+            referrerId = rawParam.replace("ref_", "").strip ? rawParam.replace("ref_", "").trim() : rawParam.replace("ref_", "");
+        }
 
         let currentBalance = 0.0;
         let streak = 0;
@@ -601,25 +696,61 @@
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
-        // በስልኩ ሜሞሪ ላይ ታሪክን ለዘላለም ማቆያ
         function getStoredHistory() {
-            try {
-                return JSON.parse(localStorage.getItem(`hist_${currentUserId}`) || '[]');
-            } catch(e) { return []; }
+            try { return JSON.parse(localStorage.getItem(`hist_${currentUserId}`) || '[]'); } catch(e) { return []; }
         }
-
         function setStoredHistory(list) {
             localStorage.setItem(`hist_${currentUserId}`, JSON.stringify(list));
         }
-
         function getStoredAdminReqs() {
-            try {
-                return JSON.parse(localStorage.getItem('admin_requests_backup') || '[]');
-            } catch(e) { return []; }
+            try { return JSON.parse(localStorage.getItem('admin_requests_backup') || '[]'); } catch(e) { return []; }
         }
-
         function setStoredAdminReqs(list) {
             localStorage.setItem('admin_requests_backup', JSON.stringify(list));
+        }
+
+        function openChannel(url) {
+            tg.openTelegramLink(url);
+        }
+
+        function doVerifyGate() {
+            const btn = document.getElementById('verifyBtnMain');
+            const msg = document.getElementById('gateMsg');
+            btn.innerText = "በማረጋገጥ ላይ...";
+            btn.disabled = true;
+            msg.innerText = "";
+
+            fetch(`${API_BASE}/api/verify_membership`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: currentUserId,
+                    referrer_id: referrerId
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "verified") {
+                    unlockApp();
+                } else {
+                    msg.innerText = data.message || "እባክዎ መጀመሪያ ቻናሎቹን ይቀላቀሉ!";
+                    btn.innerText = "✓ Verify Membership";
+                    btn.disabled = false;
+                }
+            })
+            .catch(() => {
+                msg.innerText = "የኔትወርክ ስህተት፤ እባክዎ እንደገና ይሞክሩ።";
+                btn.innerText = "✓ Verify Membership";
+                btn.disabled = false;
+            });
+        }
+
+        function unlockApp() {
+            document.getElementById('gateScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'flex';
+            document.getElementById('bottomNav').style.display = 'flex';
+            fetchUserData();
+            renderHistory();
         }
 
         function switchTab(tabName) {
@@ -628,7 +759,7 @@
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
             
-            const tabs = ['home', 'tasks', 'invite', 'wallet', 'admin'];
+            const tabs = ['home', 'invite', 'wallet', 'admin'];
             const idx = tabs.indexOf(tabName);
             if(idx !== -1) {
                 document.querySelectorAll('.bottom-nav .nav-item')[idx].classList.add('active');
@@ -641,6 +772,19 @@
             }
         }
 
+        function updateStreakCircles(currentStreak) {
+            for (let i = 1; i <= 7; i++) {
+                const el = document.getElementById(`day-${i}`);
+                if (!el) continue;
+                el.className = "streak-circle";
+                if (i < currentStreak) {
+                    el.classList.add("done");
+                } else if (i === currentStreak) {
+                    el.classList.add("active");
+                }
+            }
+        }
+
         function fetchUserData() {
             fetch(`${API_BASE}/api/user?id=${currentUserId}`)
                 .then(res => res.json())
@@ -650,10 +794,11 @@
                     const invites = data.invites || 0;
                     document.getElementById('balance').innerText = currentBalance.toFixed(2);
                     document.getElementById('streak-val').innerText = streak;
-                    document.getElementById('streak-progress').innerText = Math.min(streak * 60, 60);
+
+                    updateStreakCircles(streak === 0 ? 1 : streak);
 
                     document.getElementById('invite-count').innerText = invites;
-                    document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
+                    document.getElementById('invite-earned').innerText = (invites * 4.0).toFixed(2) + " ETB";
 
                     const chkBtn = document.getElementById('checkinBtn');
                     if (data.can_checkin === false) {
@@ -661,24 +806,10 @@
                         chkBtn.innerText = "Claimed Today ✓";
                     } else {
                         chkBtn.disabled = false;
-                        chkBtn.innerText = "Check In";
+                        chkBtn.innerText = "Check In (3.00 ETB)";
                     }
-
-                    // የተሰሩ ተግባራትን ማሳየት
-                    const done = data.tasks_done || [];
-                    if (done.includes("@PlusTechHub")) markDone('btn_task1');
-                    if (done.includes("@Eth_online_job")) markDone('btn_task2');
-                    if (done.includes("@Alphatech_earn")) markDone('btn_task3');
                 })
                 .catch(err => console.log(err));
-        }
-
-        function markDone(btnId) {
-            const btn = document.getElementById(btnId);
-            if (btn) {
-                btn.innerText = "ተጠናቋል ✓";
-                btn.disabled = true;
-            }
         }
 
         function doCheckIn() {
@@ -700,8 +831,8 @@
                     streak = data.streak;
                     document.getElementById('balance').innerText = currentBalance.toFixed(2);
                     document.getElementById('streak-val').innerText = streak;
-                    document.getElementById('streak-progress').innerText = "60";
-                    alert("🎉 እንኳን ደስ አለዎት! የዛሬውን 60 ETB Check-in ወስደዋል።");
+                    updateStreakCircles(streak);
+                    alert("🎉 እንኳን ደስ አለዎት! የዛሬውን 3.00 ETB Check-in ወስደዋል። ነገ ደግሞ Day " + (streak % 7 + 1) + " ይወስዳሉ!");
                 } else {
                     alert(data.message || "የዛሬውን አስቀድመው ወስደዋል!");
                     btn.innerText = "Claimed Today ✓";
@@ -709,46 +840,7 @@
                 }
             })
             .catch(() => {
-                btn.innerText = "Check In";
-                btn.disabled = false;
-            });
-        }
-
-        function openChannel(url) {
-            tg.openTelegramLink(url);
-        }
-
-        function claimTask(channelHandle, btnId) {
-            const btn = document.getElementById(btnId);
-            btn.innerText = "...";
-            btn.disabled = true;
-
-            fetch(`${API_BASE}/api/check_channel`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    user_id: currentUserId,
-                    channel: channelHandle
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "joined") {
-                    alert(`🎉 ቻናሉ ተረጋግጧል! +5.00 ETB ተጨምሮልሃል።`);
-                    btn.innerText = "ተጠናቋል ✓";
-                    currentBalance = data.balance;
-                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                } else if (data.status === "already_claimed") {
-                    alert("ይህንን ተግባር ከዚህ በፊት አጠናቀው ብሩን ወስደዋል!");
-                    btn.innerText = "ተጠናቋል ✓";
-                } else {
-                    alert("እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ!");
-                    btn.innerText = "ተቀላቅያለሁ";
-                    btn.disabled = false;
-                }
-            })
-            .catch(() => {
-                btn.innerText = "ተቀላቅያለሁ";
+                btn.innerText = "Check In (3.00 ETB)";
                 btn.disabled = false;
             });
         }
@@ -764,6 +856,12 @@
             }).catch(() => {
                 alert("ሊንኩ ተገልብጧል፦ " + copyInput.value);
             });
+        }
+
+        function shareInvite() {
+            const shareText = `🎁 በየቀኑ 3 ETB Daily Check-in እየወሰዱ እና ሰዎችን በመጋበዝ (4 ETB) በቀላሉ በቴሌብር ገንዘብ ያግኙ!\n\n👇 አሁኑኑ ሚኒ አፑን ይክፈቱ፦`;
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(myReferralUrl)}&text=${encodeURIComponent(shareText)}`;
+            tg.openTelegramLink(shareUrl);
         }
 
         function renderHistory() {
@@ -836,7 +934,7 @@
                 return;
             }
 
-            msgBox.style.color = "#8b949e";
+            msgBox.style.color = "#8fa0bc";
             msgBox.innerText = "በማስተናገድ ላይ...";
 
             fetch(`${API_BASE}/api/withdraw`, {
@@ -852,7 +950,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
-                    msgBox.style.color = "#00c853";
+                    msgBox.style.color = "#24a1de";
                     msgBox.innerText = "ጥያቄዎ ተልኳል! አድሚኑ አረጋግጦ ይልክልዎታል።";
                     document.getElementById('balance').innerText = data.balance.toFixed(2);
                     document.getElementById('withdrawAmount').value = "";
@@ -925,13 +1023,13 @@
                 item.innerHTML = `
                     <div style="display: flex; justify-content: space-between; font-weight: bold;">
                         <span>👤 User: ${req.user_id}</span>
-                        <span style="color: var(--primary-green); font-size: 15px;">${req.amount} ETB</span>
+                        <span style="color: var(--accent-blue); font-size: 15px;">${req.amount} ETB</span>
                     </div>
                     <div style="color: var(--text-gray); font-size: 12px;">
                         💳 ዘዴ: <b>${req.method}</b> | 📱 ስልክ: <b>${req.phone}</b>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-                        <span style="font-size: 12px; color: ${isSuccess ? '#00c853' : '#f59e0b'};">
+                        <span style="font-size: 12px; color: ${isSuccess ? '#24a1de' : '#f59e0b'};">
                             ሁኔታ: ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
                         </span>
                         ${!isSuccess ? `<button class="btn-sm" onclick="approveReq('${req.id}')">✅ Approve</button>` : ''}
@@ -964,8 +1062,14 @@
             });
         }
 
-        fetchUserData();
-        renderHistory();
+        fetch(`${API_BASE}/api/user?id=${currentUserId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.verified) {
+                    unlockApp();
+                }
+            })
+            .catch(() => {});
     </script>
 </body>
 </html>
