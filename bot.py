@@ -8,7 +8,8 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-BOT_TOKEN = "8156108154:AAH_F6BwI4Y3S55LzYy6B3c8W1R8fN6Kz9o"
+# አዲሱ ትክክለኛ የቦት ቶከን
+BOT_TOKEN = "8856484714:AAHvdyso7kjUSTEw4qKqVbQhUU31H51I7pE"
 ADMIN_ID = "8556328355"
 BOT_USERNAME = "Plus_appbot"
 WEBAPP_URL = "https://asche0949-pixel.github.io/my-mini-app-/"
@@ -123,7 +124,6 @@ def verify_membership():
 
     return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
 
-# ዴይሊ ቼክ-ኢን 3.00 ETB (ቅደም ተከተሉ ሳይበላሽ)
 @app.route("/api/checkin", methods=["POST"])
 def checkin():
     data = request.json or {}
