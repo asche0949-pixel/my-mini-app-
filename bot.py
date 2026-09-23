@@ -1,971 +1,252 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plus App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root {
-            --bg-color: #0d1117;
-            --card-bg: #161b22;
-            --primary-green: #00c853;
-            --primary-hover: #00b248;
-            --text-white: #ffffff;
-            --text-gray: #8b949e;
-            --border-color: #21262d;
-            --streak-circle: #21262d;
+import os
+import json
+import time
+import requests
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+
+BOT_TOKEN = "8156108154:AAH_F6BwI4Y3S55LzYy6B3c8W1R8fN6Kz9o"
+ADMIN_ID = "8556328355"
+BOT_USERNAME = "Plus_appbot"
+WEBAPP_URL = "https://asche0949-pixel.github.io/my-mini-app-/"
+
+DATA_FILE = "database.json"
+CHANNELS = ["@PlusTechHub", "@Eth_online_job", "@Alphatech_earn"]
+
+def load_data():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"users": {}, "withdraw_requests": [], "invited_users": []}
+
+def save_data(data):
+    try:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving data: {e}")
+
+def get_or_create_user(db, user_id):
+    str_id = str(user_id)
+    if str_id not in db["users"]:
+        db["users"][str_id] = {
+            "balance": 0.0,
+            "invites": 0,
+            "streak": 0,
+            "last_checkin": 0,
+            "verified": False,
+            "tasks_done": []
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-white);
-            padding: 16px;
-            padding-bottom: 85px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 440px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .tab-content {
-            display: none;
-            width: 100%;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .tab-content.active {
-            display: flex;
-        }
-
-        .balance-card {
-            background-color: var(--primary-green);
-            border-radius: 16px;
-            padding: 20px 18px;
-            color: white;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .balance-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            font-weight: 500;
-            opacity: 0.9;
-        }
-
-        .balance-amount {
-            font-size: 32px;
-            font-weight: 800;
-            margin: 10px 0 16px 0;
-        }
-
-        .btn-withdraw {
-            background-color: #ffffff;
-            color: #0b1a10;
-            border: none;
-            border-radius: 25px;
-            padding: 12px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .streak-card {
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .streak-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .streak-title-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .fire-icon {
-            font-size: 24px;
-            background: #271e16;
-            padding: 6px 10px;
-            border-radius: 10px;
-        }
-
-        .streak-title {
-            font-size: 15px;
-            font-weight: 700;
-        }
-
-        .streak-sub {
-            font-size: 11px;
-            color: var(--text-gray);
-            margin-top: 2px;
-        }
-
-        .streak-days-count {
-            text-align: right;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .streak-days-count span {
-            display: block;
-            font-size: 10px;
-            color: var(--text-gray);
-            font-weight: normal;
-        }
-
-        .streak-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-            text-align: center;
-            margin: 6px 0;
-        }
-
-        .streak-col {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .streak-circle {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background-color: var(--streak-circle);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-gray);
-        }
-
-        .streak-circle.active {
-            border: 1.5px solid var(--primary-green);
-            color: var(--primary-green);
-            background-color: #0b1f13;
-        }
-
-        .streak-reward {
-            font-size: 9px;
-            color: var(--text-gray);
-        }
-
-        .progress-wrap {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: var(--text-gray);
-        }
-
-        .next-reward-banner {
-            background-color: #0e2719;
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 12px;
-            color: var(--text-gray);
-        }
-
-        .next-reward-banner b {
-            color: var(--primary-green);
-        }
-
-        .btn-checkin {
-            background-color: var(--primary-green);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 14px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .btn-checkin:disabled {
-            background-color: #21262d;
-            color: var(--text-gray);
-            cursor: not-allowed;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .task-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .task-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #11151c;
-            padding: 14px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-sm {
-            background-color: var(--primary-green);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .btn-sm-secondary {
-            background-color: #21262d;
-            margin-right: 6px;
-        }
-
-        .btn-sm:disabled {
-            background-color: #1f2a24;
-            color: #4ade80;
-            cursor: default;
-        }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .input-group label {
-            font-size: 12px;
-            color: var(--text-gray);
-        }
-
-        .input-group input, .input-group select {
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background-color: #0d1117;
-            color: white;
-            outline: none;
-        }
-
-        .copy-box {
-            display: flex;
-            gap: 8px;
-            background: #0d1117;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 6px 8px;
-            align-items: center;
-        }
-
-        .copy-input {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 12px;
-            width: 100%;
-            outline: none;
-        }
-
-        .history-section {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .history-card {
-            background: #161b22;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .badge-pending {
-            background: #382c13;
-            color: #f59e0b;
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-
-        .badge-success {
-            background: #0d2818;
-            color: #00c853;
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background-color: #0b0e14;
-            border-top: 1px solid #161b22;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-size: 10px;
-            color: var(--text-gray);
-            cursor: pointer;
-            gap: 4px;
-        }
-
-        .nav-item.active {
-            color: var(--primary-green);
-        }
-
-        .nav-icon {
-            font-size: 18px;
-        }
-
-        .req-card {
-            background: #11151c;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            font-size: 13px;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        
-        <!-- HOME TAB -->
-        <div id="tab-home" class="tab-content active">
-            <div class="balance-card">
-                <div class="balance-header">
-                    <span>Available Balance</span>
-                    <span>💳</span>
-                </div>
-                <div class="balance-amount">ETB <span id="balance">0.00</span></div>
-                <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
-            </div>
-
-            <div class="streak-card">
-                <div class="streak-header">
-                    <div class="streak-title-wrap">
-                        <div class="fire-icon">🔥</div>
-                        <div>
-                            <div class="streak-title">Daily Streak</div>
-                            <div class="streak-sub">Keep earning every day</div>
-                        </div>
-                    </div>
-                    <div class="streak-days-count">
-                        <span id="streak-val">0</span>
-                        <span>/ 7 days</span>
-                    </div>
-                </div>
-
-                <div class="streak-grid">
-                    <div class="streak-col"><div class="streak-circle active" id="day-1">1</div><div class="streak-reward">60 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-2">2</div><div class="streak-reward">4 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-3">3</div><div class="streak-reward">5 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-4">4</div><div class="streak-reward">7 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-5">5</div><div class="streak-reward">9 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-6">6</div><div class="streak-reward">11 ETB</div></div>
-                    <div class="streak-col"><div class="streak-circle" id="day-7">7</div><div class="streak-reward">12 ETB</div></div>
-                </div>
-
-                <div class="progress-wrap">
-                    <span>Progress</span>
-                    <span><span id="streak-progress">0</span> / 60 ETB</span>
-                </div>
-
-                <div class="next-reward-banner">
-                    🎁 Earn <b>60 ETB</b> on your next check-in.
-                </div>
-
-                <button class="btn-checkin" id="checkinBtn" onclick="doCheckIn()">Check In</button>
-            </div>
-        </div>
-
-        <!-- TASKS TAB (3ቱ ቻናሎች) -->
-        <div id="tab-tasks" class="tab-content">
-            <h3 style="font-size: 16px;">ተግባራት (Tasks)</h3>
-            <div class="task-list">
-                <!-- ቻናል 1 -->
-                <div class="task-item">
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">PlusTechHub ተቀላቀሉ</div>
-                        <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
-                    </div>
-                    <div>
-                        <button class="btn-sm btn-sm-secondary" onclick="openChannel('https://t.me/PlusTechHub')">ክፈት</button>
-                        <button class="btn-sm" id="btn_task1" onclick="claimTask('@PlusTechHub', 'btn_task1')">ተቀላቅያለሁ</button>
-                    </div>
-                </div>
-
-                <!-- ቻናል 2 -->
-                <div class="task-item">
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">Eth Online Job ተቀላቀሉ</div>
-                        <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
-                    </div>
-                    <div>
-                        <button class="btn-sm btn-sm-secondary" onclick="openChannel('https://t.me/Eth_online_job')">ክፈት</button>
-                        <button class="btn-sm" id="btn_task2" onclick="claimTask('@Eth_online_job', 'btn_task2')">ተቀላቅያለሁ</button>
-                    </div>
-                </div>
-
-                <!-- ቻናል 3 -->
-                <div class="task-item">
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">AlphaTech Earn ተቀላቀሉ</div>
-                        <div style="color: var(--primary-green); font-size: 12px; margin-top: 2px;">+5.00 ETB</div>
-                    </div>
-                    <div>
-                        <button class="btn-sm btn-sm-secondary" onclick="openChannel('https://t.me/Alphatech_earn')">ክፈት</button>
-                        <button class="btn-sm" id="btn_task3" onclick="claimTask('@Alphatech_earn', 'btn_task3')">ተቀላቅያለሁ</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- INVITE TAB -->
-        <div id="tab-invite" class="tab-content">
-            <h3 style="font-size: 16px;">Invite Friends</h3>
-            <div class="card">
-                <div style="font-weight: 700; font-size: 16px;">ጓደኞችህን ጋብዝ!</div>
-                <div style="color: var(--text-gray); font-size: 13px; line-height: 1.5;">
-                    ለእያንዳንዱ አንተ በጋበዝከው ሰው <b style="color: var(--primary-green);">3.00 ETB</b> ወዲያውኑ ወደ አካውንትህ ይገባል።
-                </div>
-                
-                <div style="margin-top: 8px;">
-                    <label style="font-size: 11px; color: var(--text-gray); display: block; margin-bottom: 4px;">የአንተ መጋበዣ ሊንክ</label>
-                    <div class="copy-box">
-                        <input type="text" id="refLinkInput" class="copy-input" readonly value="">
-                        <button class="btn-sm" id="copyBtn" onclick="copyReferralLink()">Copy</button>
-                    </div>
-                </div>
-                
-                <div style="display: flex; justify-content: space-around; background: #11151c; border-radius: 10px; padding: 12px; margin-top: 10px;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 18px; font-weight: bold;" id="invite-count">0</div>
-                        <div style="font-size: 11px; color: var(--text-gray);">የተጋበዙ ሰዎች</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 18px; font-weight: bold; color: var(--primary-green);" id="invite-earned">0.00 ETB</div>
-                        <div style="font-size: 11px; color: var(--text-gray);">ያገኙት ገቢ</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- WALLET TAB -->
-        <div id="tab-wallet" class="tab-content">
-            <h3 style="font-size: 16px;">Withdrawal</h3>
-            <div class="card">
-                <div class="input-group">
-                    <label>የክፍያ ዘዴ</label>
-                    <select id="withdrawMethod">
-                        <option value="Telebirr">Telebirr</option>
-                        <option value="CBE">የኢትዮጵያ ንግድ ባንክ (CBE)</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>ስልክ ቁጥር / የባንክ ሂሳብ</label>
-                    <input type="text" id="withdrawPhone" placeholder="09xxxxxxxx">
-                </div>
-                <div class="input-group">
-                    <label>የብር መጠን (ዝቅተኛው 60 ETB)</label>
-                    <input type="number" id="withdrawAmount" placeholder="60">
-                </div>
-                <button class="btn-checkin" onclick="submitWithdraw()">ብር አውጣ</button>
-                <div id="withdrawMsg" style="font-size: 12px; text-align: center; margin-top: 4px;"></div>
-            </div>
-
-            <!-- WITHDRAWAL HISTORY -->
-            <div class="history-section">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="font-size: 14px; color: var(--text-gray);">Withdrawal History</h4>
-                    <button class="btn-sm btn-sm-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="renderHistory()">🔄 አድስ</button>
-                </div>
-                <div id="userHistoryList" style="display: flex; flex-direction: column; gap: 8px;"></div>
-            </div>
-        </div>
-
-        <!-- ADMIN PANEL TAB -->
-        <div id="tab-admin" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size: 16px;">👑 Admin Requests</h3>
-                <button class="btn-sm btn-sm-secondary" onclick="loadAdminRequests()">🔄 አድስ</button>
-            </div>
-            <div id="requestsList" style="display: flex; flex-direction: column; gap: 10px;">
-                <div style="text-align: center; color: var(--text-gray); font-size: 13px;">ጥያቄዎች በመጫን ላይ...</div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab('home')">
-            <div class="nav-icon">🏠</div>
-            <div>Home</div>
-        </div>
-        <div class="nav-item" onclick="switchTab('tasks')">
-            <div class="nav-icon">📋</div>
-            <div>Tasks</div>
-        </div>
-        <div class="nav-item" onclick="switchTab('invite')">
-            <div class="nav-icon">👥</div>
-            <div>Invite</div>
-        </div>
-        <div class="nav-item" onclick="switchTab('wallet')">
-            <div class="nav-icon">💼</div>
-            <div>Wallet</div>
-        </div>
-        <div class="nav-item" id="adminNavItem" style="display: none;" onclick="switchTab('admin')">
-            <div class="nav-icon">👑</div>
-            <div>Admin</div>
-        </div>
-    </div>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        const API_BASE = "https://my-mini-app-sekv.onrender.com";
-        const ADMIN_ID = "8556328355";
-        const BOT_USERNAME = "Plus_appbot";
-        
-        const user = tg.initDataUnsafe?.user || { id: "test_user", first_name: "User" };
-        const currentUserId = String(user.id);
-
-        const myReferralUrl = `https://t.me/${BOT_USERNAME}?start=ref_${currentUserId}`;
-
-        let currentBalance = 0.0;
-        let streak = 0;
-
-        document.getElementById('refLinkInput').value = myReferralUrl;
-
-        if (currentUserId === ADMIN_ID) {
-            document.getElementById('adminNavItem').style.display = "flex";
-        }
-
-        // በስልኩ ሜሞሪ ላይ ታሪክን ለዘላለም ማቆያ
-        function getStoredHistory() {
-            try {
-                return JSON.parse(localStorage.getItem(`hist_${currentUserId}`) || '[]');
-            } catch(e) { return []; }
-        }
-
-        function setStoredHistory(list) {
-            localStorage.setItem(`hist_${currentUserId}`, JSON.stringify(list));
-        }
-
-        function getStoredAdminReqs() {
-            try {
-                return JSON.parse(localStorage.getItem('admin_requests_backup') || '[]');
-            } catch(e) { return []; }
-        }
-
-        function setStoredAdminReqs(list) {
-            localStorage.setItem('admin_requests_backup', JSON.stringify(list));
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            
-            const tabs = ['home', 'tasks', 'invite', 'wallet', 'admin'];
-            const idx = tabs.indexOf(tabName);
-            if(idx !== -1) {
-                document.querySelectorAll('.bottom-nav .nav-item')[idx].classList.add('active');
+    return db["users"][str_id]
+
+def send_telegram_message(chat_id, text, reply_markup=None):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    try:
+        requests.post(url, json=payload, timeout=5)
+    except Exception as e:
+        print(f"Send error: {e}")
+
+def check_member(channel, user_id):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
+    try:
+        res = requests.get(url, params={"chat_id": channel, "user_id": user_id}, timeout=5).json()
+        status = res.get("result", {}).get("status", "")
+        return status in ["member", "administrator", "creator"]
+    except Exception:
+        return True
+
+@app.route("/")
+def index():
+    return "Plus App Backend is live!"
+
+@app.route("/api/user", methods=["GET"])
+def get_user():
+    user_id = request.args.get("id", ADMIN_ID)
+    db = load_data()
+    user_data = get_or_create_user(db, user_id)
+    save_data(db)
+    
+    now = time.time()
+    can_checkin = (now - user_data.get("last_checkin", 0)) >= 86400
+    
+    res = dict(user_data)
+    res["can_checkin"] = can_checkin
+    return jsonify(res)
+
+@app.route("/api/verify_membership", methods=["POST"])
+def verify_membership():
+    data = request.json or {}
+    user_id = str(data.get("user_id", ADMIN_ID))
+    referrer_id = str(data.get("referrer_id", "")).strip()
+
+    db = load_data()
+    user_data = get_or_create_user(db, user_id)
+
+    missing = []
+    for ch in CHANNELS:
+        if not check_member(ch, user_id):
+            missing.append(ch)
+
+    if missing:
+        return jsonify({
+            "status": "not_joined",
+            "message": f"እባክዎ መጀመሪያ የቀሩትን ቻናሎች ይቀላቀሉ፦ {', '.join(missing)}",
+            "verified": False
+        })
+
+    # አዲስ ሰው ሲገባ ለጋባዡ 4.00 ETB መክፈል
+    if referrer_id and referrer_id != user_id and user_id not in db["invited_users"]:
+        db["invited_users"].append(user_id)
+        ref_user = get_or_create_user(db, referrer_id)
+        ref_user["balance"] += 4.0
+        ref_user["invites"] = ref_user.get("invites", 0) + 1
+
+        ref_msg = (
+            f"🎉 *እንኳን ደስ አለዎት!*\n\n"
+            f"👤 አዲስ ተጠቃሚ በእርስዎ ሊንክ ተቀላቅሏል!\n"
+            f"💰 *+4.00 ETB* ወደ ሂሳብዎ ተጨምሯል!\n"
+            f"💵 ጠቅላላ ሂሳብዎ: {ref_user['balance']:.2f} ETB"
+        )
+        send_telegram_message(referrer_id, ref_msg)
+
+    user_data["verified"] = True
+    save_data(db)
+
+    return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
+
+# ዴይሊ ቼክ-ኢን 3.00 ETB (ቅደም ተከተሉ ሳይበላሽ)
+@app.route("/api/checkin", methods=["POST"])
+def checkin():
+    data = request.json or {}
+    user_id = str(data.get("user_id", ADMIN_ID))
+    db = load_data()
+    user_data = get_or_create_user(db, user_id)
+
+    now = time.time()
+    last_check = user_data.get("last_checkin", 0)
+    cooldown = 86400
+
+    if now - last_check < cooldown:
+        remaining_hours = int((cooldown - (now - last_check)) // 3600)
+        remaining_minutes = int(((cooldown - (now - last_check)) % 3600) // 60)
+        return jsonify({
+            "status": "error",
+            "message": f"የዛሬውን ወስደዋል! ከ {remaining_hours} ሰዓት ከ {remaining_minutes} ደቂቃ በኋላ ይሞክሩ።",
+            "can_checkin": False
+        }), 400
+
+    user_data["balance"] += 3.0
+    user_data["streak"] = (user_data.get("streak", 0) % 7) + 1
+    user_data["last_checkin"] = now
+    save_data(db)
+
+    return jsonify({
+        "status": "success",
+        "balance": user_data["balance"],
+        "streak": user_data["streak"],
+        "can_checkin": False
+    })
+
+@app.route("/api/withdraw", methods=["POST"])
+def withdraw():
+    data = request.json or {}
+    user_id = str(data.get("user_id", ADMIN_ID))
+    amount = float(data.get("amount", 0))
+    phone = data.get("phone", "")
+    method = data.get("method", "Telebirr")
+
+    db = load_data()
+    user_data = get_or_create_user(db, user_id)
+
+    user_data["balance"] = max(0.0, user_data["balance"] - amount)
+
+    req_id = int(time.time() * 1000)
+    req_item = {
+        "id": req_id,
+        "user_id": user_id,
+        "amount": amount,
+        "phone": phone,
+        "method": method,
+        "status": "Pending",
+        "date": time.strftime("%Y-%m-%d %H:%M")
+    }
+    db["withdraw_requests"].append(req_item)
+    save_data(db)
+
+    msg = (
+        f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
+        f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
+        f"💰 *መጠን:* {amount} ETB\n"
+        f"💳 *ዘዴ:* {method}\n"
+        f"📱 *ስልክ:* `{phone}`"
+    )
+    send_telegram_message(ADMIN_ID, msg)
+
+    return jsonify({"status": "success", "balance": user_data["balance"], "request": req_item})
+
+@app.route("/api/user/history", methods=["GET"])
+def get_user_history():
+    user_id = str(request.args.get("user_id", ADMIN_ID))
+    db = load_data()
+    history = [r for r in db["withdraw_requests"] if str(r["user_id"]) == user_id]
+    return jsonify(history)
+
+@app.route("/api/admin/requests", methods=["GET"])
+def get_admin_requests():
+    db = load_data()
+    return jsonify(db["withdraw_requests"])
+
+@app.route("/api/admin/approve", methods=["POST"])
+def approve_request():
+    data = request.json or {}
+    req_id = data.get("req_id")
+    db = load_data()
+    for r in db["withdraw_requests"]:
+        if str(r["id"]) == str(req_id):
+            r["status"] = "Success"
+            user_msg = f"🎉 *እንኳን ደስ አለዎት!*\nየጠየቁት {r['amount']} ETB በተሳካ ሁኔታ ተልኮልዎታል!"
+            send_telegram_message(r["user_id"], user_msg)
+            save_data(db)
+            break
+    return jsonify({"status": "success"})
+
+@app.route("/webhook", methods=["POST"])
+def telegram_webhook():
+    update = request.json or {}
+    if "message" in update:
+        msg = update["message"]
+        chat_id = str(msg["chat"]["id"])
+        text = msg.get("text", "")
+
+        if text.startswith("/start"):
+            welcome_text = (
+                f"👋 *እንኳን ወደ Plus App በደህና መጡ!*\n\n"
+                f"በየቀኑ Check-in በማድረግ እና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
+                f"⚠️ ወደ ሚኒ አፑ ከመግባትዎ በፊት ቻናሎቹን ይቀላቀሉ፦\n"
+                f"1. @PlusTechHub\n"
+                f"2. @Eth_online_job\n"
+                f"3. @Alphatech_earn\n\n"
+                f"ከዚያ ከታች ያለውን *«🚀 Open App»* ይጫኑ!"
+            )
+            keyboard = {
+                "inline_keyboard": [
+                    [{"text": "🚀 Open App", "url": f"https://t.me/{BOT_USERNAME}/app"}],
+                    [{"text": "📢 ቻናል 1", "url": "https://t.me/PlusTechHub"}, {"text": "📢 ቻናል 2", "url": "https://t.me/Eth_online_job"}],
+                    [{"text": "📢 ቻናል 3", "url": "https://t.me/Alphatech_earn"}]
+                ]
             }
+            send_telegram_message(chat_id, welcome_text, keyboard)
 
-            if (tabName === 'wallet') {
-                renderHistory();
-            } else if (tabName === 'admin') {
-                loadAdminRequests();
-            }
-        }
+    return jsonify({"ok": True})
 
-        function fetchUserData() {
-            fetch(`${API_BASE}/api/user?id=${currentUserId}`)
-                .then(res => res.json())
-                .then(data => {
-                    currentBalance = data.balance || 0;
-                    streak = data.streak || 0;
-                    const invites = data.invites || 0;
-                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                    document.getElementById('streak-val').innerText = streak;
-                    document.getElementById('streak-progress').innerText = Math.min(streak * 60, 60);
-
-                    document.getElementById('invite-count').innerText = invites;
-                    document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
-
-                    const chkBtn = document.getElementById('checkinBtn');
-                    if (data.can_checkin === false) {
-                        chkBtn.disabled = true;
-                        chkBtn.innerText = "Claimed Today ✓";
-                    } else {
-                        chkBtn.disabled = false;
-                        chkBtn.innerText = "Check In";
-                    }
-
-                    // የተሰሩ ተግባራትን ማሳየት
-                    const done = data.tasks_done || [];
-                    if (done.includes("@PlusTechHub")) markDone('btn_task1');
-                    if (done.includes("@Eth_online_job")) markDone('btn_task2');
-                    if (done.includes("@Alphatech_earn")) markDone('btn_task3');
-                })
-                .catch(err => console.log(err));
-        }
-
-        function markDone(btnId) {
-            const btn = document.getElementById(btnId);
-            if (btn) {
-                btn.innerText = "ተጠናቋል ✓";
-                btn.disabled = true;
-            }
-        }
-
-        function doCheckIn() {
-            const btn = document.getElementById('checkinBtn');
-            btn.disabled = true;
-            btn.innerText = "...";
-
-            fetch(`${API_BASE}/api/checkin`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: currentUserId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    btn.innerText = "Claimed Today ✓";
-                    btn.disabled = true;
-                    currentBalance = data.balance;
-                    streak = data.streak;
-                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                    document.getElementById('streak-val').innerText = streak;
-                    document.getElementById('streak-progress').innerText = "60";
-                    alert("🎉 እንኳን ደስ አለዎት! የዛሬውን 60 ETB Check-in ወስደዋል።");
-                } else {
-                    alert(data.message || "የዛሬውን አስቀድመው ወስደዋል!");
-                    btn.innerText = "Claimed Today ✓";
-                    btn.disabled = true;
-                }
-            })
-            .catch(() => {
-                btn.innerText = "Check In";
-                btn.disabled = false;
-            });
-        }
-
-        function openChannel(url) {
-            tg.openTelegramLink(url);
-        }
-
-        function claimTask(channelHandle, btnId) {
-            const btn = document.getElementById(btnId);
-            btn.innerText = "...";
-            btn.disabled = true;
-
-            fetch(`${API_BASE}/api/check_channel`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    user_id: currentUserId,
-                    channel: channelHandle
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "joined") {
-                    alert(`🎉 ቻናሉ ተረጋግጧል! +5.00 ETB ተጨምሮልሃል።`);
-                    btn.innerText = "ተጠናቋል ✓";
-                    currentBalance = data.balance;
-                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                } else if (data.status === "already_claimed") {
-                    alert("ይህንን ተግባር ከዚህ በፊት አጠናቀው ብሩን ወስደዋል!");
-                    btn.innerText = "ተጠናቋል ✓";
-                } else {
-                    alert("እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ!");
-                    btn.innerText = "ተቀላቅያለሁ";
-                    btn.disabled = false;
-                }
-            })
-            .catch(() => {
-                btn.innerText = "ተቀላቅያለሁ";
-                btn.disabled = false;
-            });
-        }
-
-        function copyReferralLink() {
-            const copyInput = document.getElementById('refLinkInput');
-            copyInput.select();
-            copyInput.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(copyInput.value).then(() => {
-                const copyBtn = document.getElementById('copyBtn');
-                copyBtn.innerText = "Copied!";
-                setTimeout(() => { copyBtn.innerText = "Copy"; }, 2000);
-            }).catch(() => {
-                alert("ሊንኩ ተገልብጧል፦ " + copyInput.value);
-            });
-        }
-
-        function renderHistory() {
-            const listDiv = document.getElementById('userHistoryList');
-            let localList = getStoredHistory();
-
-            fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
-                .then(res => res.json())
-                .then(serverHistory => {
-                    if (Array.isArray(serverHistory) && serverHistory.length > 0) {
-                        serverHistory.forEach(sItem => {
-                            const idx = localList.findIndex(l => String(l.id) === String(sItem.id));
-                            if (idx !== -1) {
-                                localList[idx].status = sItem.status;
-                            } else {
-                                localList.push(sItem);
-                            }
-                        });
-                        setStoredHistory(localList);
-                    }
-                    displayHistoryItems(localList);
-                })
-                .catch(() => {
-                    displayHistoryItems(localList);
-                });
-        }
-
-        function displayHistoryItems(history) {
-            const listDiv = document.getElementById('userHistoryList');
-            if (!history || history.length === 0) {
-                listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ምንም የማውጣት ታሪክ የለም።</div>`;
-                return;
-            }
-
-            listDiv.innerHTML = "";
-            history.slice().reverse().forEach(item => {
-                const isSuccess = item.status === "Success";
-                const div = document.createElement('div');
-                div.className = "history-card";
-                div.innerHTML = `
-                    <div>
-                        <div style="font-weight: 700; font-size: 14px;">${item.amount} ETB</div>
-                        <div style="font-size: 11px; color: var(--text-gray); margin-top: 2px;">${item.method} • ${item.phone}</div>
-                    </div>
-                    <div>
-                        <span class="${isSuccess ? 'badge-success' : 'badge-pending'}">
-                            ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
-                        </span>
-                    </div>
-                `;
-                listDiv.appendChild(div);
-            });
-        }
-
-        function submitWithdraw() {
-            const amount = parseFloat(document.getElementById('withdrawAmount').value);
-            const phone = document.getElementById('withdrawPhone').value.trim();
-            const method = document.getElementById('withdrawMethod').value;
-            const msgBox = document.getElementById('withdrawMsg');
-
-            if (!amount || amount < 60) {
-                msgBox.style.color = "#da3633";
-                msgBox.innerText = "ዝቅተኛው የማውጫ መጠን 60 ETB ነው!";
-                return;
-            }
-
-            if (!phone) {
-                msgBox.style.color = "#da3633";
-                msgBox.innerText = "እባክዎ ስልክ ቁጥር ያስገቡ!";
-                return;
-            }
-
-            msgBox.style.color = "#8b949e";
-            msgBox.innerText = "በማስተናገድ ላይ...";
-
-            fetch(`${API_BASE}/api/withdraw`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    user_id: currentUserId,
-                    amount: amount,
-                    phone: phone,
-                    method: method
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    msgBox.style.color = "#00c853";
-                    msgBox.innerText = "ጥያቄዎ ተልኳል! አድሚኑ አረጋግጦ ይልክልዎታል።";
-                    document.getElementById('balance').innerText = data.balance.toFixed(2);
-                    document.getElementById('withdrawAmount').value = "";
-                    document.getElementById('withdrawPhone').value = "";
-
-                    const localList = getStoredHistory();
-                    const newEntry = data.request || {
-                        id: Date.now(),
-                        amount: amount,
-                        phone: phone,
-                        method: method,
-                        status: "Pending"
-                    };
-                    localList.push(newEntry);
-                    setStoredHistory(localList);
-
-                    const adminBack = getStoredAdminReqs();
-                    adminBack.push(newEntry);
-                    setStoredAdminReqs(adminBack);
-
-                    displayHistoryItems(localList);
-                } else {
-                    msgBox.style.color = "#da3633";
-                    msgBox.innerText = data.message || "ስህተት ተፈጥሯል!";
-                }
-            })
-            .catch(() => {
-                msgBox.style.color = "#da3633";
-                msgBox.innerText = "የኔትወርክ ስህተት ተፈጥሯል!";
-            });
-        }
-
-        function loadAdminRequests() {
-            const listDiv = document.getElementById('requestsList');
-            let localAdmin = getStoredAdminReqs();
-
-            fetch(`${API_BASE}/api/admin/requests`)
-                .then(res => res.json())
-                .then(serverReqs => {
-                    if (Array.isArray(serverReqs) && serverReqs.length > 0) {
-                        serverReqs.forEach(s => {
-                            const idx = localAdmin.findIndex(l => String(l.id) === String(s.id));
-                            if (idx !== -1) {
-                                localAdmin[idx].status = s.status;
-                            } else {
-                                localAdmin.push(s);
-                            }
-                        });
-                        setStoredAdminReqs(localAdmin);
-                    }
-                    displayAdminItems(localAdmin);
-                })
-                .catch(() => {
-                    displayAdminItems(localAdmin);
-                });
-        }
-
-        function displayAdminItems(reqs) {
-            const listDiv = document.getElementById('requestsList');
-            if (!reqs || reqs.length === 0) {
-                listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 13px; padding: 20px;">ምንም የማውጣት ጥያቄ የለም።</div>`;
-                return;
-            }
-
-            listDiv.innerHTML = "";
-            reqs.slice().reverse().forEach(req => {
-                const isSuccess = req.status === "Success";
-                const item = document.createElement('div');
-                item.className = "req-card";
-                item.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                        <span>👤 User: ${req.user_id}</span>
-                        <span style="color: var(--primary-green); font-size: 15px;">${req.amount} ETB</span>
-                    </div>
-                    <div style="color: var(--text-gray); font-size: 12px;">
-                        💳 ዘዴ: <b>${req.method}</b> | 📱 ስልክ: <b>${req.phone}</b>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-                        <span style="font-size: 12px; color: ${isSuccess ? '#00c853' : '#f59e0b'};">
-                            ሁኔታ: ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
-                        </span>
-                        ${!isSuccess ? `<button class="btn-sm" onclick="approveReq('${req.id}')">✅ Approve</button>` : ''}
-                    </div>
-                `;
-                listDiv.appendChild(item);
-            });
-        }
-
-        function approveReq(id) {
-            const localAdmin = getStoredAdminReqs();
-            const target = localAdmin.find(l => String(l.id) === String(id));
-            if (target) {
-                target.status = "Success";
-                setStoredAdminReqs(localAdmin);
-                displayAdminItems(localAdmin);
-            }
-
-            const localHist = getStoredHistory();
-            const histTarget = localHist.find(l => String(l.id) === String(id));
-            if (histTarget) {
-                histTarget.status = "Success";
-                setStoredHistory(localHist);
-            }
-
-            fetch(`${API_BASE}/api/admin/approve`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ req_id: id })
-            });
-        }
-
-        fetchUserData();
-        renderHistory();
-    </script>
-</body>
-</html>
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
