@@ -44,7 +44,6 @@
             gap: 16px;
         }
 
-        /* GATE SCREEN (የቻናሎች ማስገደጃ ገጽ) */
         #gateScreen {
             display: flex;
             flex-direction: column;
@@ -136,7 +135,6 @@
             box-shadow: 0 4px 20px rgba(0, 136, 204, 0.4);
         }
 
-        /* MAIN APP */
         #mainApp {
             display: none;
             width: 100%;
@@ -679,12 +677,13 @@
         const user = tg.initDataUnsafe?.user || { id: "test_user", first_name: "User" };
         const currentUserId = String(user.id);
 
+        // ቀጥታ ሚኒ አፑን ብቻ የሚከፍት ሊንክ
         const myReferralUrl = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
 
         let rawParam = tg.initDataUnsafe?.start_param || "";
         let referrerId = "";
         if (rawParam.startsWith("ref_")) {
-            referrerId = rawParam.replace("ref_", "").strip ? rawParam.replace("ref_", "").trim() : rawParam.replace("ref_", "");
+            referrerId = rawParam.replace("ref_", "").trim();
         }
 
         let currentBalance = 0.0;
