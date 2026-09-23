@@ -215,11 +215,10 @@ def approve_request():
             break
     return jsonify({"status": "success"})
 
-# Webhook ሳያስፈልግ ቦቱ ራሱ መልእክቶችን ተቀብሎ የሚመልስበት ቋሚ Polling
+# Webhook ሳይፈልግ ቦቱ በራሱ መልእክቶችን ተቀብሎ የሚመልስበት Polling
 def bot_polling_loop():
-    # የቀደመውን Webhook ማጥፋት
     try:
-        requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook", timeout=5)
+        requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=True", timeout=5)
     except Exception:
         pass
 
