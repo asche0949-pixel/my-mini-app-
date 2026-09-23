@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import threading
 import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -8,7 +9,6 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# አዲሱ ትክክለኛ የቦት ቶከን
 BOT_TOKEN = "8856484714:AAHvdyso7kjUSTEw4qKqVbQhUU31H51I7pE"
 ADMIN_ID = "8556328355"
 BOT_USERNAME = "Plus_appbot"
@@ -67,7 +67,7 @@ def check_member(channel, user_id):
 
 @app.route("/")
 def index():
-    return "Plus App Backend is live!"
+    return "Plus App Backend is live and running!"
 
 @app.route("/api/user", methods=["GET"])
 def get_user():
@@ -78,7 +78,6 @@ def get_user():
     
     now = time.time()
     can_checkin = (now - user_data.get("last_checkin", 0)) >= 86400
-    
     res = dict(user_data)
     res["can_checkin"] = can_checkin
     return jsonify(res)
@@ -104,7 +103,6 @@ def verify_membership():
             "verified": False
         })
 
-    # አዲስ ሰው ሲገባ ለጋባዡ 4.00 ETB መክፈል
     if referrer_id and referrer_id != user_id and user_id not in db["invited_users"]:
         db["invited_users"].append(user_id)
         ref_user = get_or_create_user(db, referrer_id)
@@ -166,7 +164,6 @@ def withdraw():
 
     db = load_data()
     user_data = get_or_create_user(db, user_id)
-
     user_data["balance"] = max(0.0, user_data["balance"] - amount)
 
     req_id = int(time.time() * 1000)
@@ -190,7 +187,6 @@ def withdraw():
         f"📱 *ስልክ:* `{phone}`"
     )
     send_telegram_message(ADMIN_ID, msg)
-
     return jsonify({"status": "success", "balance": user_data["balance"], "request": req_item})
 
 @app.route("/api/user/history", methods=["GET"])
@@ -219,34 +215,49 @@ def approve_request():
             break
     return jsonify({"status": "success"})
 
-@app.route("/webhook", methods=["POST"])
-def telegram_webhook():
-    update = request.json or {}
-    if "message" in update:
-        msg = update["message"]
-        chat_id = str(msg["chat"]["id"])
-        text = msg.get("text", "")
+# Webhook ሳያስፈልግ ቦቱ ራሱ መልእክቶችን ተቀብሎ የሚመልስበት ቋሚ Polling
+def bot_polling_loop():
+    # የቀደመውን Webhook ማጥፋት
+    try:
+        requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook", timeout=5)
+    except Exception:
+        pass
 
-        if text.startswith("/start"):
-            welcome_text = (
-                f"👋 *እንኳን ወደ Plus App በደህና መጡ!*\n\n"
-                f"በየቀኑ Check-in በማድረግ እና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
-                f"⚠️ ወደ ሚኒ አፑ ከመግባትዎ በፊት ቻናሎቹን ይቀላቀሉ፦\n"
-                f"1. @PlusTechHub\n"
-                f"2. @Eth_online_job\n"
-                f"3. @Alphatech_earn\n\n"
-                f"ከዚያ ከታች ያለውን *«🚀 Open App»* ይጫኑ!"
-            )
-            keyboard = {
-                "inline_keyboard": [
-                    [{"text": "🚀 Open App", "url": f"https://t.me/{BOT_USERNAME}/app"}],
-                    [{"text": "📢 ቻናል 1", "url": "https://t.me/PlusTechHub"}, {"text": "📢 ቻናል 2", "url": "https://t.me/Eth_online_job"}],
-                    [{"text": "📢 ቻናል 3", "url": "https://t.me/Alphatech_earn"}]
-                ]
-            }
-            send_telegram_message(chat_id, welcome_text, keyboard)
+    offset = 0
+    while True:
+        try:
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+            res = requests.get(url, params={"offset": offset, "timeout": 20}, timeout=25).json()
+            if res.get("ok"):
+                for update in res.get("result", []):
+                    offset = update["update_id"] + 1
+                    if "message" in update:
+                        msg = update["message"]
+                        chat_id = str(msg["chat"]["id"])
+                        text = msg.get("text", "")
 
-    return jsonify({"ok": True})
+                        if text.startswith("/start"):
+                            welcome_text = (
+                                f"👋 *እንኳን ወደ Plus App በደህና መጡ!*\n\n"
+                                f"በየቀኑ Check-in በማድረግ እና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
+                                f"⚠️ ወደ ሚኒ አፑ ከመግባትዎ በፊት ቻናሎቹን ይቀላቀሉ፦\n"
+                                f"1. @PlusTechHub\n"
+                                f"2. @Eth_online_job\n"
+                                f"3. @Alphatech_earn\n\n"
+                                f"ከዚያ ከታች ያለውን *«🚀 Open App»* ይጫኑ!"
+                            )
+                            keyboard = {
+                                "inline_keyboard": [
+                                    [{"text": "🚀 Open App", "url": f"https://t.me/{BOT_USERNAME}/app"}],
+                                    [{"text": "📢 ቻናል 1", "url": "https://t.me/PlusTechHub"}, {"text": "📢 ቻናል 2", "url": "https://t.me/Eth_online_job"}],
+                                    [{"text": "📢 ቻናል 3", "url": "https://t.me/Alphatech_earn"}]
+                                ]
+                            }
+                            send_telegram_message(chat_id, welcome_text, keyboard)
+        except Exception:
+            time.sleep(2)
 
 if __name__ == "__main__":
+    t = threading.Thread(target=bot_polling_loop, daemon=True)
+    t.start()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
