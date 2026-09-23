@@ -41,8 +41,7 @@ def get_or_create_user(db, user_id):
             "invites": 0,
             "streak": 0,
             "last_checkin": 0,
-            "verified": False,
-            "tasks_done": []
+            "verified": False
         }
     return db["users"][str_id]
 
@@ -71,11 +70,11 @@ def index():
 
 @app.route("/api/user", methods=["GET"])
 def get_user():
-    user_id = request.args.get("id", ADMIN_ID)
+    user_id = str(request.args.get("id", ADMIN_ID))
     db = load_data()
     user_data = get_or_create_user(db, user_id)
     save_data(db)
-    
+
     now = time.time()
     can_checkin = (now - user_data.get("last_checkin", 0)) >= 86400
     res = dict(user_data)
@@ -103,6 +102,7 @@ def verify_membership():
             "verified": False
         })
 
+    # ኢንቫይት ቆጥሮ 4 ETB መጨመር
     if referrer_id and referrer_id != user_id and user_id not in db["invited_users"]:
         db["invited_users"].append(user_id)
         ref_user = get_or_create_user(db, referrer_id)
@@ -134,11 +134,11 @@ def checkin():
     cooldown = 86400
 
     if now - last_check < cooldown:
-        remaining_hours = int((cooldown - (now - last_check)) // 3600)
-        remaining_minutes = int(((cooldown - (now - last_check)) % 3600) // 60)
+        rem_h = int((cooldown - (now - last_check)) // 3600)
+        rem_m = int(((cooldown - (now - last_check)) % 3600) // 60)
         return jsonify({
             "status": "error",
-            "message": f"የዛሬውን ወስደዋል! ከ {remaining_hours} ሰዓት ከ {remaining_minutes} ደቂቃ በኋላ ይሞክሩ።",
+            "message": f"የዛሬውን ወስደዋል! ከ {rem_h} ሰዓት ከ {rem_m} ደቂቃ በኋላ ይሞክሩ።",
             "can_checkin": False
         }), 400
 
@@ -164,6 +164,10 @@ def withdraw():
 
     db = load_data()
     user_data = get_or_create_user(db, user_id)
+
+    if user_data["balance"] < amount:
+        return jsonify({"status": "error", "message": "በቂ ቀሪ ሂሳብ የለዎትም!"}), 400
+
     user_data["balance"] = max(0.0, user_data["balance"] - amount)
 
     req_id = int(time.time() * 1000)
@@ -179,14 +183,17 @@ def withdraw():
     db["withdraw_requests"].append(req_item)
     save_data(db)
 
-    msg = (
+    # አድሚኑ ጋር በቴሌግራም መልእክት እንዲደርስ
+    admin_alert = (
         f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
         f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
         f"💰 *መጠን:* {amount} ETB\n"
         f"💳 *ዘዴ:* {method}\n"
-        f"📱 *ስልክ:* `{phone}`"
+        f"📱 *ስልክ / ሂሳብ:* `{phone}`\n\n"
+        f"ለማጽደቅ ወደ ሚኒ አፑ ገብተው '👑 Admin' ክፍል ውስጥ *Approve* ይበሉ!"
     )
-    send_telegram_message(ADMIN_ID, msg)
+    send_telegram_message(ADMIN_ID, admin_alert)
+
     return jsonify({"status": "success", "balance": user_data["balance"], "request": req_item})
 
 @app.route("/api/user/history", methods=["GET"])
@@ -209,13 +216,17 @@ def approve_request():
     for r in db["withdraw_requests"]:
         if str(r["id"]) == str(req_id):
             r["status"] = "Success"
-            user_msg = f"🎉 *እንኳን ደስ አለዎት!*\nየጠየቁት {r['amount']} ETB በተሳካ ሁኔታ ተልኮልዎታል!"
+            user_msg = (
+                f"🎉 *እንኳን ደስ አለዎት!*\n\n"
+                f"የጠየቁት *{r['amount']} ETB* በ {r['method']} ተልኮልዎታል!\n"
+                f"📱 ስልክ: `{r['phone']}`"
+            )
             send_telegram_message(r["user_id"], user_msg)
             save_data(db)
             break
     return jsonify({"status": "success"})
 
-# Webhook ሳይፈልግ ቦቱ በራሱ መልእክቶችን ተቀብሎ የሚመልስበት Polling
+# Polling loop
 def bot_polling_loop():
     try:
         requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=True", timeout=5)
