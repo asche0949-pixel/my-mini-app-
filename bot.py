@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import datetime
 import threading
 import requests
 from flask import Flask, request, jsonify
@@ -12,8 +13,6 @@ CORS(app)
 BOT_TOKEN = "8856484714:AAHvdyso7kjUSTEw4qKqVbQhUU31H51I7pE"
 ADMIN_ID = "8556328355"
 BOT_USERNAME = "Plus_appbot"
-WEBAPP_URL = "https://asche0949-pixel.github.io/my-mini-app-/"
-
 DATA_FILE = "database.json"
 CHANNELS = ["@PlusTechHub", "@Eth_online_job", "@Alphatech_earn"]
 
@@ -34,24 +33,24 @@ def save_data(data):
         print(f"Error saving data: {e}")
 
 def get_or_create_user(db, user_id):
-    str_id = str(user_id)
+    str_id = str(user_id).strip()
     if str_id not in db["users"]:
         db["users"][str_id] = {
             "balance": 0.0,
             "invites": 0,
             "streak": 0,
-            "last_checkin": 0,
+            "last_checkin_date": "",
             "verified": False
         }
     return db["users"][str_id]
 
 def send_telegram_message(chat_id, text, reply_markup=None):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+    payload = {"chat_id": str(chat_id).strip(), "text": text, "parse_mode": "Markdown"}
     if reply_markup:
         payload["reply_markup"] = reply_markup
     try:
-        requests.post(url, json=payload, timeout=5)
+        requests.post(url, json=payload, timeout=6)
     except Exception as e:
         print(f"Send error: {e}")
 
@@ -64,19 +63,23 @@ def check_member(channel, user_id):
     except Exception:
         return True
 
+def get_today_str():
+    # የቀኑን ቀን በ UTC+3 (የኢትዮጵያ ሰዓት) ያሰላል
+    return (datetime.datetime.utcnow() + datetime.timedelta(hours=3)).strftime("%Y-%m-%d")
+
 @app.route("/")
 def index():
     return "Plus App Backend is live and running!"
 
 @app.route("/api/user", methods=["GET"])
 def get_user():
-    user_id = str(request.args.get("id", ADMIN_ID))
+    user_id = str(request.args.get("id", ADMIN_ID)).strip()
     db = load_data()
     user_data = get_or_create_user(db, user_id)
     save_data(db)
 
-    now = time.time()
-    can_checkin = (now - user_data.get("last_checkin", 0)) >= 86400
+    today = get_today_str()
+    can_checkin = user_data.get("last_checkin_date") != today
     res = dict(user_data)
     res["can_checkin"] = can_checkin
     return jsonify(res)
@@ -84,7 +87,7 @@ def get_user():
 @app.route("/api/verify_membership", methods=["POST"])
 def verify_membership():
     data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID))
+    user_id = str(data.get("user_id", ADMIN_ID)).strip()
     referrer_id = str(data.get("referrer_id", "")).strip()
 
     db = load_data()
@@ -102,7 +105,7 @@ def verify_membership():
             "verified": False
         })
 
-    # ኢንቫይት ቆጥሮ 4 ETB መጨመር
+    # ሪፈራል ቆጥሮ 4 ETB መጨመር እና መልእክት መላክ
     if referrer_id and referrer_id != user_id and user_id not in db["invited_users"]:
         db["invited_users"].append(user_id)
         ref_user = get_or_create_user(db, referrer_id)
@@ -111,9 +114,10 @@ def verify_membership():
 
         ref_msg = (
             f"🎉 *እንኳን ደስ አለዎት!*\n\n"
-            f"👤 አዲስ ተጠቃሚ በእርስዎ ሊንክ ተቀላቅሏል!\n"
-            f"💰 *+4.00 ETB* ወደ ሂሳብዎ ተጨምሯል!\n"
-            f"💵 ጠቅላላ ሂሳብዎ: {ref_user['balance']:.2f} ETB"
+            f"👤 አዲስ ተጠቃሚ በእርስዎ የመጋበዣ ሊንክ ተቀላቅሏል!\n"
+            f"💰 *+4.00 ETB* ወደ ሂሳብዎ ገብቷል!\n\n"
+            f"💵 ጠቅላላ ሂሳብዎ፦ *{ref_user['balance']:.2f} ETB*\n"
+            f"👥 ጠቅላላ የጋበዟቸው ሰዎች፦ *{ref_user['invites']}*"
         )
         send_telegram_message(referrer_id, ref_msg)
 
@@ -125,26 +129,21 @@ def verify_membership():
 @app.route("/api/checkin", methods=["POST"])
 def checkin():
     data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID))
+    user_id = str(data.get("user_id", ADMIN_ID)).strip()
     db = load_data()
     user_data = get_or_create_user(db, user_id)
 
-    now = time.time()
-    last_check = user_data.get("last_checkin", 0)
-    cooldown = 86400
-
-    if now - last_check < cooldown:
-        rem_h = int((cooldown - (now - last_check)) // 3600)
-        rem_m = int(((cooldown - (now - last_check)) % 3600) // 60)
+    today = get_today_str()
+    if user_data.get("last_checkin_date") == today:
         return jsonify({
             "status": "error",
-            "message": f"የዛሬውን ወስደዋል! ከ {rem_h} ሰዓት ከ {rem_m} ደቂቃ በኋላ ይሞክሩ።",
+            "message": "የዛሬውን አስቀድመው ወስደዋል! ነገ ከሌሊቱ 6:00 ሰዓት በኋላ ይመለሱ።",
             "can_checkin": False
         }), 400
 
     user_data["balance"] += 3.0
     user_data["streak"] = (user_data.get("streak", 0) % 7) + 1
-    user_data["last_checkin"] = now
+    user_data["last_checkin_date"] = today
     save_data(db)
 
     return jsonify({
@@ -157,7 +156,7 @@ def checkin():
 @app.route("/api/withdraw", methods=["POST"])
 def withdraw():
     data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID))
+    user_id = str(data.get("user_id", ADMIN_ID)).strip()
     amount = float(data.get("amount", 0))
     phone = data.get("phone", "")
     method = data.get("method", "Telebirr")
@@ -183,14 +182,13 @@ def withdraw():
     db["withdraw_requests"].append(req_item)
     save_data(db)
 
-    # አድሚኑ ጋር በቴሌግራም መልእክት እንዲደርስ
     admin_alert = (
         f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
         f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
         f"💰 *መጠን:* {amount} ETB\n"
         f"💳 *ዘዴ:* {method}\n"
-        f"📱 *ስልክ / ሂሳብ:* `{phone}`\n\n"
-        f"ለማጽደቅ ወደ ሚኒ አፑ ገብተው '👑 Admin' ክፍል ውስጥ *Approve* ይበሉ!"
+        f"📱 *ስልክ:* `{phone}`\n\n"
+        f"ለማጽደቅ ወደ ሚኒ አፑ ገብተው '👑 Admin' ክፍል ውስጥ ያረጋግጡ!"
     )
     send_telegram_message(ADMIN_ID, admin_alert)
 
@@ -198,7 +196,7 @@ def withdraw():
 
 @app.route("/api/user/history", methods=["GET"])
 def get_user_history():
-    user_id = str(request.args.get("user_id", ADMIN_ID))
+    user_id = str(request.args.get("user_id", ADMIN_ID)).strip()
     db = load_data()
     history = [r for r in db["withdraw_requests"] if str(r["user_id"]) == user_id]
     return jsonify(history)
@@ -226,7 +224,6 @@ def approve_request():
             break
     return jsonify({"status": "success"})
 
-# Polling loop
 def bot_polling_loop():
     try:
         requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=True", timeout=5)
@@ -250,15 +247,11 @@ def bot_polling_loop():
                             welcome_text = (
                                 f"👋 *እንኳን ወደ Plus App በደህና መጡ!*\n\n"
                                 f"በየቀኑ Check-in በማድረግ እና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
-                                f"⚠️ ወደ ሚኒ አፑ ከመግባትዎ በፊት ቻናሎቹን ይቀላቀሉ፦\n"
-                                f"1. @PlusTechHub\n"
-                                f"2. @Eth_online_job\n"
-                                f"3. @Alphatech_earn\n\n"
-                                f"ከዚያ ከታች ያለውን *«🚀 Open App»* ይጫኑ!"
+                                f"ከታች ያለውን *«🚀 Open Plus App»* ይጫኑ!"
                             )
                             keyboard = {
                                 "inline_keyboard": [
-                                    [{"text": "🚀 Open App", "url": f"https://t.me/{BOT_USERNAME}/app"}],
+                                    [{"text": "🚀 Open Plus App", "url": f"https://t.me/{BOT_USERNAME}/app"}],
                                     [{"text": "📢 ቻናል 1", "url": "https://t.me/PlusTechHub"}, {"text": "📢 ቻናል 2", "url": "https://t.me/Eth_online_job"}],
                                     [{"text": "📢 ቻናል 3", "url": "https://t.me/Alphatech_earn"}]
                                 ]
