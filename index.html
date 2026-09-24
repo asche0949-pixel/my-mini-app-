@@ -1,266 +1,1093 @@
-import os
-import json
-import time
-import datetime
-import threading
-import requests
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app)
-
-BOT_TOKEN = "8856484714:AAHvdyso7kjUSTEw4qKqVbQhUU31H51I7pE"
-ADMIN_ID = "8556328355"
-BOT_USERNAME = "Plus_appbot"
-DATA_FILE = "database.json"
-CHANNELS = ["@PlusTechHub", "@Eth_online_job", "@Alphatech_earn"]
-
-def load_data():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {"users": {}, "withdraw_requests": [], "invited_users": []}
-
-def save_data(data):
-    try:
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error saving data: {e}")
-
-def get_or_create_user(db, user_id):
-    str_id = str(user_id).strip()
-    if str_id not in db["users"]:
-        db["users"][str_id] = {
-            "balance": 0.0,
-            "invites": 0,
-            "streak": 0,
-            "last_checkin_date": "",
-            "verified": False
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plus App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b111e;
+            --card-bg: #131c2e;
+            --primary-blue: #0088cc;
+            --accent-blue: #24a1de;
+            --text-white: #ffffff;
+            --text-gray: #8fa0bc;
+            --border-color: #1f2d47;
+            --streak-circle: #172338;
         }
-    return db["users"][str_id]
 
-def send_telegram_message(chat_id, text, reply_markup=None):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": str(chat_id).strip(), "text": text, "parse_mode": "Markdown"}
-    if reply_markup:
-        payload["reply_markup"] = reply_markup
-    try:
-        requests.post(url, json=payload, timeout=6)
-    except Exception as e:
-        print(f"Send error: {e}")
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
 
-def check_member(channel, user_id):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
-    try:
-        res = requests.get(url, params={"chat_id": channel, "user_id": user_id}, timeout=5).json()
-        status = res.get("result", {}).get("status", "")
-        return status in ["member", "administrator", "creator"]
-    except Exception:
-        return True
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-white);
+            padding: 16px;
+            padding-bottom: 85px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-def get_today_str():
-    # የቀኑን ቀን በ UTC+3 (የኢትዮጵያ ሰዓት) ያሰላል
-    return (datetime.datetime.utcnow() + datetime.timedelta(hours=3)).strftime("%Y-%m-%d")
+        .container {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
 
-@app.route("/")
-def index():
-    return "Plus App Backend is live and running!"
+        #gateScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 18px;
+            padding: 24px 0;
+            width: 100%;
+        }
 
-@app.route("/api/user", methods=["GET"])
-def get_user():
-    user_id = str(request.args.get("id", ADMIN_ID)).strip()
-    db = load_data()
-    user_data = get_or_create_user(db, user_id)
-    save_data(db)
+        .gate-logo {
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: #192742;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            border: 2px solid var(--accent-blue);
+            box-shadow: 0 0 25px rgba(36, 161, 222, 0.3);
+        }
 
-    today = get_today_str()
-    can_checkin = user_data.get("last_checkin_date") != today
-    res = dict(user_data)
-    res["can_checkin"] = can_checkin
-    return jsonify(res)
+        .gate-title {
+            font-size: 22px;
+            font-weight: 800;
+        }
 
-@app.route("/api/verify_membership", methods=["POST"])
-def verify_membership():
-    data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID)).strip()
-    referrer_id = str(data.get("referrer_id", "")).strip()
+        .gate-sub {
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.5;
+            padding: 0 10px;
+        }
 
-    db = load_data()
-    user_data = get_or_create_user(db, user_id)
+        .gate-channels-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
 
-    missing = []
-    for ch in CHANNELS:
-        if not check_member(ch, user_id):
-            missing.append(ch)
+        .gate-channel-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-    if missing:
-        return jsonify({
-            "status": "not_joined",
-            "message": f"እባክዎ መጀመሪያ የቀሩትን ቻናሎች ይቀላቀሉ፦ {', '.join(missing)}",
-            "verified": False
-        })
+        .gate-ch-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-align: left;
+        }
 
-    # ሪፈራል ቆጥሮ 4 ETB መጨመር እና መልእክት መላክ
-    if referrer_id and referrer_id != user_id and user_id not in db["invited_users"]:
-        db["invited_users"].append(user_id)
-        ref_user = get_or_create_user(db, referrer_id)
-        ref_user["balance"] += 4.0
-        ref_user["invites"] = ref_user.get("invites", 0) + 1
+        .gate-ch-icon {
+            font-size: 20px;
+            background: #1c2b47;
+            padding: 8px;
+            border-radius: 50%;
+        }
 
-        ref_msg = (
-            f"🎉 *እንኳን ደስ አለዎት!*\n\n"
-            f"👤 አዲስ ተጠቃሚ በእርስዎ የመጋበዣ ሊንክ ተቀላቅሏል!\n"
-            f"💰 *+4.00 ETB* ወደ ሂሳብዎ ገብቷል!\n\n"
-            f"💵 ጠቅላላ ሂሳብዎ፦ *{ref_user['balance']:.2f} ETB*\n"
-            f"👥 ጠቅላላ የጋበዟቸው ሰዎች፦ *{ref_user['invites']}*"
-        )
-        send_telegram_message(referrer_id, ref_msg)
+        .btn-join {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
 
-    user_data["verified"] = True
-    save_data(db)
+        .btn-verify-main {
+            background: linear-gradient(135deg, #0088cc, #24a1de);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            box-shadow: 0 4px 20px rgba(0, 136, 204, 0.4);
+        }
 
-    return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
+        #mainApp {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            gap: 16px;
+        }
 
-@app.route("/api/checkin", methods=["POST"])
-def checkin():
-    data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID)).strip()
-    db = load_data()
-    user_data = get_or_create_user(db, user_id)
+        .tab-content {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            gap: 16px;
+        }
 
-    today = get_today_str()
-    if user_data.get("last_checkin_date") == today:
-        return jsonify({
-            "status": "error",
-            "message": "የዛሬውን አስቀድመው ወስደዋል! ነገ ከሌሊቱ 6:00 ሰዓት በኋላ ይመለሱ።",
-            "can_checkin": False
-        }), 400
+        .tab-content.active {
+            display: flex;
+        }
 
-    user_data["balance"] += 3.0
-    user_data["streak"] = (user_data.get("streak", 0) % 7) + 1
-    user_data["last_checkin_date"] = today
-    save_data(db)
+        .balance-card {
+            background: linear-gradient(135deg, #0088cc, #1868a8);
+            border-radius: 16px;
+            padding: 20px 18px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 136, 204, 0.25);
+        }
 
-    return jsonify({
-        "status": "success",
-        "balance": user_data["balance"],
-        "streak": user_data["streak"],
-        "can_checkin": False
-    })
+        .balance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
 
-@app.route("/api/withdraw", methods=["POST"])
-def withdraw():
-    data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID)).strip()
-    amount = float(data.get("amount", 0))
-    phone = data.get("phone", "")
-    method = data.get("method", "Telebirr")
+        .balance-amount {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 10px 0 16px 0;
+        }
 
-    db = load_data()
-    user_data = get_or_create_user(db, user_id)
+        .btn-withdraw {
+            background-color: #ffffff;
+            color: #0b111e;
+            border: none;
+            border-radius: 25px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+        }
 
-    if user_data["balance"] < amount:
-        return jsonify({"status": "error", "message": "በቂ ቀሪ ሂሳብ የለዎትም!"}), 400
+        .streak-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            border: 1px solid var(--border-color);
+        }
 
-    user_data["balance"] = max(0.0, user_data["balance"] - amount)
+        .streak-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
 
-    req_id = int(time.time() * 1000)
-    req_item = {
-        "id": req_id,
-        "user_id": user_id,
-        "amount": amount,
-        "phone": phone,
-        "method": method,
-        "status": "Pending",
-        "date": time.strftime("%Y-%m-%d %H:%M")
-    }
-    db["withdraw_requests"].append(req_item)
-    save_data(db)
+        .streak-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    admin_alert = (
-        f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
-        f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
-        f"💰 *መጠን:* {amount} ETB\n"
-        f"💳 *ዘዴ:* {method}\n"
-        f"📱 *ስልክ:* `{phone}`\n\n"
-        f"ለማጽደቅ ወደ ሚኒ አፑ ገብተው '👑 Admin' ክፍል ውስጥ ያረጋግጡ!"
-    )
-    send_telegram_message(ADMIN_ID, admin_alert)
+        .fire-icon {
+            font-size: 24px;
+            background: #1c2b47;
+            padding: 6px 10px;
+            border-radius: 10px;
+        }
 
-    return jsonify({"status": "success", "balance": user_data["balance"], "request": req_item})
+        .streak-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
 
-@app.route("/api/user/history", methods=["GET"])
-def get_user_history():
-    user_id = str(request.args.get("user_id", ADMIN_ID)).strip()
-    db = load_data()
-    history = [r for r in db["withdraw_requests"] if str(r["user_id"]) == user_id]
-    return jsonify(history)
+        .streak-sub {
+            font-size: 11px;
+            color: var(--text-gray);
+            margin-top: 2px;
+        }
 
-@app.route("/api/admin/requests", methods=["GET"])
-def get_admin_requests():
-    db = load_data()
-    return jsonify(db["withdraw_requests"])
+        .streak-days-count {
+            text-align: right;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent-blue);
+        }
 
-@app.route("/api/admin/approve", methods=["POST"])
-def approve_request():
-    data = request.json or {}
-    req_id = data.get("req_id")
-    db = load_data()
-    for r in db["withdraw_requests"]:
-        if str(r["id"]) == str(req_id):
-            r["status"] = "Success"
-            user_msg = (
-                f"🎉 *እንኳን ደስ አለዎት!*\n\n"
-                f"የጠየቁት *{r['amount']} ETB* በ {r['method']} ተልኮልዎታል!\n"
-                f"📱 ስልክ: `{r['phone']}`"
-            )
-            send_telegram_message(r["user_id"], user_msg)
-            save_data(db)
-            break
-    return jsonify({"status": "success"})
+        .streak-days-count span {
+            display: block;
+            font-size: 10px;
+            color: var(--text-gray);
+            font-weight: normal;
+        }
 
-def bot_polling_loop():
-    try:
-        requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=True", timeout=5)
-    except Exception:
-        pass
+        .streak-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            text-align: center;
+            margin: 6px 0;
+        }
 
-    offset = 0
-    while True:
-        try:
-            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
-            res = requests.get(url, params={"offset": offset, "timeout": 20}, timeout=25).json()
-            if res.get("ok"):
-                for update in res.get("result", []):
-                    offset = update["update_id"] + 1
-                    if "message" in update:
-                        msg = update["message"]
-                        chat_id = str(msg["chat"]["id"])
-                        text = msg.get("text", "")
+        .streak-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
 
-                        if text.startswith("/start"):
-                            welcome_text = (
-                                f"👋 *እንኳን ወደ Plus App በደህና መጡ!*\n\n"
-                                f"በየቀኑ Check-in በማድረግ እና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
-                                f"ከታች ያለውን *«🚀 Open Plus App»* ይጫኑ!"
-                            )
-                            keyboard = {
-                                "inline_keyboard": [
-                                    [{"text": "🚀 Open Plus App", "url": f"https://t.me/{BOT_USERNAME}/app"}],
-                                    [{"text": "📢 ቻናል 1", "url": "https://t.me/PlusTechHub"}, {"text": "📢 ቻናል 2", "url": "https://t.me/Eth_online_job"}],
-                                    [{"text": "📢 ቻናል 3", "url": "https://t.me/Alphatech_earn"}]
-                                ]
+        .streak-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background-color: var(--streak-circle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-gray);
+            border: 1px solid var(--border-color);
+        }
+
+        .streak-circle.active {
+            border: 1.5px solid var(--accent-blue);
+            color: var(--accent-blue);
+            background-color: #162640;
+        }
+
+        .streak-circle.done {
+            border: 1.5px solid var(--primary-blue);
+            background-color: var(--primary-blue);
+            color: white;
+        }
+
+        .streak-reward {
+            font-size: 9px;
+            color: var(--text-gray);
+        }
+
+        .next-reward-banner {
+            background-color: #17243c;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .next-reward-banner b {
+            color: var(--accent-blue);
+        }
+
+        .btn-checkin {
+            background: linear-gradient(135deg, #0088cc, #24a1de);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-checkin:disabled {
+            background: #172338;
+            color: var(--text-gray);
+            cursor: not-allowed;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-sm {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-sm-secondary {
+            background-color: #1c2b47;
+            margin-right: 6px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .input-group input, .input-group select {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: #0b111e;
+            color: white;
+            outline: none;
+        }
+
+        .copy-box {
+            display: flex;
+            gap: 8px;
+            background: #0b111e;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 8px;
+            align-items: center;
+        }
+
+        .copy-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 12px;
+            width: 100%;
+            outline: none;
+        }
+
+        .history-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .history-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge-pending {
+            background: #382c13;
+            color: #f59e0b;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-success {
+            background: #0e2942;
+            color: #24a1de;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: #0b111e;
+            border-top: 1px solid var(--border-color);
+            display: none;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            color: var(--text-gray);
+            cursor: pointer;
+            gap: 4px;
+        }
+
+        .nav-item.active {
+            color: var(--accent-blue);
+        }
+
+        .nav-icon {
+            font-size: 18px;
+        }
+
+        .req-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- GATE SCREEN -->
+        <div id="gateScreen">
+            <div class="gate-logo">🎁</div>
+            <div class="gate-title">Join Our Channels</div>
+            <div class="gate-sub">You must join our official Telegram channels below to access Plus App.</div>
+
+            <div class="gate-channels-list">
+                <div class="gate-channel-card">
+                    <div class="gate-ch-info">
+                        <div class="gate-ch-icon">📢</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px;">PlusTechHub</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">Tap to join channel</div>
+                        </div>
+                    </div>
+                    <button class="btn-join" onclick="openChannel('https://t.me/PlusTechHub')">Join</button>
+                </div>
+
+                <div class="gate-channel-card">
+                    <div class="gate-ch-info">
+                        <div class="gate-ch-icon">📢</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px;">Eth Online Job</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">Tap to join channel</div>
+                        </div>
+                    </div>
+                    <button class="btn-join" onclick="openChannel('https://t.me/Eth_online_job')">Join</button>
+                </div>
+
+                <div class="gate-channel-card">
+                    <div class="gate-ch-info">
+                        <div class="gate-ch-icon">📢</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px;">AlphaTech Earn</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">Tap to join channel</div>
+                        </div>
+                    </div>
+                    <button class="btn-join" onclick="openChannel('https://t.me/Alphatech_earn')">Join</button>
+                </div>
+            </div>
+
+            <button class="btn-verify-main" id="verifyBtnMain" onclick="doVerifyGate()">✓ Verify Membership</button>
+            <div id="gateMsg" style="font-size: 12px; color: #da3633; margin-top: 4px;"></div>
+        </div>
+
+        <!-- MAIN APP -->
+        <div id="mainApp">
+            
+            <!-- HOME TAB -->
+            <div id="tab-home" class="tab-content active">
+                <div class="balance-card">
+                    <div class="balance-header">
+                        <span>Available Balance</span>
+                        <span>💳</span>
+                    </div>
+                    <div class="balance-amount">ETB <span id="balance">0.00</span></div>
+                    <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
+                </div>
+
+                <div class="streak-card">
+                    <div class="streak-header">
+                        <div class="streak-title-wrap">
+                            <div class="fire-icon">🔥</div>
+                            <div>
+                                <div class="streak-title">Daily Streak</div>
+                                <div class="streak-sub">Keep earning every day</div>
+                            </div>
+                        </div>
+                        <div class="streak-days-count">
+                            <span id="streak-val">0</span>
+                            <span>/ 7 days</span>
+                        </div>
+                    </div>
+
+                    <div class="streak-grid">
+                        <div class="streak-col"><div class="streak-circle active" id="day-1">1</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-2">2</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-3">3</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-4">4</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-5">5</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-6">6</div><div class="streak-reward">3 ETB</div></div>
+                        <div class="streak-col"><div class="streak-circle" id="day-7">7</div><div class="streak-reward">3 ETB</div></div>
+                    </div>
+
+                    <div class="next-reward-banner">
+                        🎁 Earn <b>3.00 ETB</b> on your next check-in.
+                    </div>
+
+                    <button class="btn-checkin" id="checkinBtn" onclick="doCheckIn()">Check In (3.00 ETB)</button>
+                </div>
+            </div>
+
+            <!-- INVITE TAB -->
+            <div id="tab-invite" class="tab-content">
+                <h3 style="font-size: 16px;">Invite Friends</h3>
+                <div class="card">
+                    <div style="font-weight: 700; font-size: 16px;">ጓደኞችህን ጋብዝ!</div>
+                    <div style="color: var(--text-gray); font-size: 13px; line-height: 1.5;">
+                        ለእያንዳንዱ አንተ በጋበዝከው ሰው <b style="color: var(--accent-blue);">4.00 ETB</b> ወዲያውኑ ወደ አካውንትህ ይገባል።
+                    </div>
+                    
+                    <div style="margin-top: 8px;">
+                        <label style="font-size: 11px; color: var(--text-gray); display: block; margin-bottom: 4px;">የአንተ ቀጥታ ሚኒ አፕ መጋበዣ ሊንክ</label>
+                        <div class="copy-box">
+                            <input type="text" id="refLinkInput" class="copy-input" readonly value="">
+                            <button class="btn-sm" id="copyBtn" onclick="copyReferralLink()">Copy</button>
+                        </div>
+                    </div>
+
+                    <button class="btn-sm btn-sm-secondary" style="width: 100%; padding: 12px; margin-top: 6px;" onclick="shareInvite()">
+                        📲 በቴሌግራም አጋራ (Share Link)
+                    </button>
+                    
+                    <div style="display: flex; justify-content: space-around; background: #0b111e; border-radius: 10px; padding: 12px; margin-top: 10px; border: 1px solid var(--border-color);">
+                        <div style="text-align: center;">
+                            <div style="font-size: 18px; font-weight: bold; color: var(--accent-blue);" id="invite-count">0</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">የተጋበዙ ሰዎች</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 18px; font-weight: bold; color: var(--accent-blue);" id="invite-earned">0.00 ETB</div>
+                            <div style="font-size: 11px; color: var(--text-gray);">ያገኙት ገቢ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WALLET TAB -->
+            <div id="tab-wallet" class="tab-content">
+                <h3 style="font-size: 16px;">Withdrawal</h3>
+                <div class="card">
+                    <div style="background: #17243c; padding: 10px; border-radius: 8px; font-size: 12px; color: var(--text-gray);">
+                        📢 የክፍያ ማረጋገጫዎችን ለማየት፦ <a href="https://t.me/PlusTechHub" target="_blank" style="color: var(--accent-blue); font-weight: bold;">የክፍያ ማረጋገጫ (Proof Channel)</a> ተቀላቀሉ!
+                    </div>
+
+                    <div class="input-group">
+                        <label>የክፍያ ዘዴ</label>
+                        <select id="withdrawMethod">
+                            <option value="Telebirr">Telebirr</option>
+                            <option value="CBE">የኢትዮጵያ ንግድ ባንክ (CBE)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>ስልክ ቁጥር / የባንክ ሂሳብ</label>
+                        <input type="text" id="withdrawPhone" placeholder="09xxxxxxxx">
+                    </div>
+                    <div class="input-group">
+                        <label>የብር መጠን (ዝቅተኛው 60 ETB)</label>
+                        <input type="number" id="withdrawAmount" placeholder="60">
+                    </div>
+                    <button class="btn-checkin" onclick="submitWithdraw()">ብር አውጣ</button>
+                    <div id="withdrawMsg" style="font-size: 12px; text-align: center; margin-top: 4px;"></div>
+                </div>
+
+                <!-- WITHDRAWAL HISTORY -->
+                <div class="history-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="font-size: 14px; color: var(--text-gray);">Withdrawal History</h4>
+                        <button class="btn-sm btn-sm-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="renderHistory()">🔄 አድስ</button>
+                    </div>
+                    <div id="userHistoryList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+            </div>
+
+            <!-- ADMIN PANEL TAB -->
+            <div id="tab-admin" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 16px;">👑 Admin Requests</h3>
+                    <button class="btn-sm btn-sm-secondary" onclick="loadAdminRequests()">🔄 አድስ</button>
+                </div>
+                <div id="requestsList" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="text-align: center; color: var(--text-gray); font-size: 13px;">ጥያቄዎች በመጫን ላይ...</div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav" id="bottomNav">
+        <div class="nav-item active" onclick="switchTab('home')">
+            <div class="nav-icon">🏠</div>
+            <div>Home</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('invite')">
+            <div class="nav-icon">👥</div>
+            <div>Invite</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('wallet')">
+            <div class="nav-icon">💼</div>
+            <div>Wallet</div>
+        </div>
+        <div class="nav-item" id="adminNavItem" style="display: none;" onclick="switchTab('admin')">
+            <div class="nav-icon">👑</div>
+            <div>Admin</div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const API_BASE = "https://my-mini-app-sekv.onrender.com";
+        const ADMIN_ID = "8556328355";
+        const BOT_USERNAME = "Plus_appbot";
+        
+        const user = tg.initDataUnsafe?.user || { id: "test_user", first_name: "User" };
+        const currentUserId = String(user.id).trim();
+
+        // ሪፈራል ሊንክ - ቀጥታ አፑን የሚከፍት
+        const myReferralUrl = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
+        document.getElementById('refLinkInput').value = myReferralUrl;
+
+        // ሪፈራል ID ማግኘት እና በስልኩ ማስቀመጥ
+        let urlParams = new URLSearchParams(window.location.search);
+        let rawParam = tg.initDataUnsafe?.start_param || urlParams.get('startapp') || urlParams.get('tgWebAppStartParam') || "";
+        
+        let referrerId = "";
+        if (rawParam && rawParam.includes("ref_")) {
+            referrerId = rawParam.split("ref_")[1].split("&")[0].trim();
+            localStorage.setItem("pending_referrer", referrerId);
+        } else {
+            referrerId = localStorage.getItem("pending_referrer") || "";
+        }
+
+        let currentBalance = 0.0;
+        let streak = 0;
+
+        if (currentUserId === ADMIN_ID) {
+            document.getElementById('adminNavItem').style.display = "flex";
+        }
+
+        // አንዴ ቻናሎቹ ከተረጋገጡ በስልኩ እንዲያስታውሰው ማድረግ (ዳግመኛ እንዳይጠይቅ)
+        const isLocallyVerified = localStorage.getItem(`verified_${currentUserId}`) === "true";
+        if (isLocallyVerified) {
+            unlockApp();
+        }
+
+        function getStoredHistory() {
+            try { return JSON.parse(localStorage.getItem(`hist_${currentUserId}`) || '[]'); } catch(e) { return []; }
+        }
+        function setStoredHistory(list) {
+            localStorage.setItem(`hist_${currentUserId}`, JSON.stringify(list));
+        }
+        function getStoredAdminReqs() {
+            try { return JSON.parse(localStorage.getItem('admin_requests_backup') || '[]'); } catch(e) { return []; }
+        }
+        function setStoredAdminReqs(list) {
+            localStorage.setItem('admin_requests_backup', JSON.stringify(list));
+        }
+
+        function openChannel(url) {
+            tg.openTelegramLink(url);
+        }
+
+        function doVerifyGate() {
+            const btn = document.getElementById('verifyBtnMain');
+            const msg = document.getElementById('gateMsg');
+            btn.innerText = "በማረጋገጥ ላይ...";
+            btn.disabled = true;
+            msg.innerText = "";
+
+            const activeReferrer = referrerId || localStorage.getItem("pending_referrer") || "";
+
+            fetch(`${API_BASE}/api/verify_membership`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: currentUserId,
+                    referrer_id: activeReferrer
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "verified") {
+                    localStorage.setItem(`verified_${currentUserId}`, "true");
+                    localStorage.removeItem("pending_referrer");
+                    unlockApp();
+                } else {
+                    msg.innerText = data.message || "እባክዎ መጀመሪያ ቻናሎቹን ይቀላቀሉ!";
+                    btn.innerText = "✓ Verify Membership";
+                    btn.disabled = false;
+                }
+            })
+            .catch(() => {
+                msg.innerText = "የኔትወርክ ስህተት፤ እባክዎ እንደገና ይሞክሩ።";
+                btn.innerText = "✓ Verify Membership";
+                btn.disabled = false;
+            });
+        }
+
+        function unlockApp() {
+            document.getElementById('gateScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'flex';
+            document.getElementById('bottomNav').style.display = 'flex';
+            fetchUserData();
+            renderHistory();
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            const tabs = ['home', 'invite', 'wallet', 'admin'];
+            const idx = tabs.indexOf(tabName);
+            if(idx !== -1) {
+                document.querySelectorAll('.bottom-nav .nav-item')[idx].classList.add('active');
+            }
+
+            if (tabName === 'wallet') {
+                renderHistory();
+            } else if (tabName === 'admin') {
+                loadAdminRequests();
+            }
+        }
+
+        function updateStreakCircles(currentStreak) {
+            for (let i = 1; i <= 7; i++) {
+                const el = document.getElementById(`day-${i}`);
+                if (!el) continue;
+                el.className = "streak-circle";
+                if (i < currentStreak) {
+                    el.classList.add("done");
+                } else if (i === currentStreak) {
+                    el.classList.add("active");
+                }
+            }
+        }
+
+        function fetchUserData() {
+            fetch(`${API_BASE}/api/user?id=${currentUserId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.verified) {
+                        localStorage.setItem(`verified_${currentUserId}`, "true");
+                    }
+                    currentBalance = data.balance || 0;
+                    streak = data.streak || 0;
+                    const invites = data.invites || 0;
+                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                    document.getElementById('streak-val').innerText = streak;
+
+                    updateStreakCircles(streak === 0 ? 1 : streak);
+
+                    document.getElementById('invite-count').innerText = invites;
+                    document.getElementById('invite-earned').innerText = (invites * 4.0).toFixed(2) + " ETB";
+
+                    const chkBtn = document.getElementById('checkinBtn');
+                    if (data.can_checkin === false) {
+                        chkBtn.disabled = true;
+                        chkBtn.innerText = "Claimed Today ✓";
+                    } else {
+                        chkBtn.disabled = false;
+                        chkBtn.innerText = "Check In (3.00 ETB)";
+                    }
+                })
+                .catch(err => console.log(err));
+        }
+
+        function doCheckIn() {
+            const btn = document.getElementById('checkinBtn');
+            btn.disabled = true;
+            btn.innerText = "...";
+
+            fetch(`${API_BASE}/api/checkin`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: currentUserId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    btn.innerText = "Claimed Today ✓";
+                    btn.disabled = true;
+                    currentBalance = data.balance;
+                    streak = data.streak;
+                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                    document.getElementById('streak-val').innerText = streak;
+                    updateStreakCircles(streak);
+                    alert("🎉 እንኳን ደስ አለዎት! የዛሬውን 3.00 ETB ወስደዋል። ነገ ከሌሊቱ 6:00 ሰዓት በኋላ Day " + (streak % 7 + 1) + " ይወስዳሉ!");
+                } else {
+                    alert(data.message || "የዛሬውን አስቀድመው ወስደዋል!");
+                    btn.innerText = "Claimed Today ✓";
+                    btn.disabled = true;
+                }
+            })
+            .catch(() => {
+                btn.innerText = "Check In (3.00 ETB)";
+                btn.disabled = false;
+            });
+        }
+
+        function copyReferralLink() {
+            const copyInput = document.getElementById('refLinkInput');
+            copyInput.select();
+            copyInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyInput.value).then(() => {
+                const copyBtn = document.getElementById('copyBtn');
+                copyBtn.innerText = "Copied!";
+                setTimeout(() => { copyBtn.innerText = "Copy"; }, 2000);
+            }).catch(() => {
+                alert("ሊንኩ ተገልብጧል፦ " + copyInput.value);
+            });
+        }
+
+        function shareInvite() {
+            const shareText = `🎁 በየቀኑ 3 ETB Daily Check-in እየወሰዱ እና ሰዎችን በመጋበዝ (4 ETB) በቀላሉ በቴሌብር ገንዘብ ያግኙ!\n\n👇 አሁኑኑ ሚኒ አፑን ይክፈቱ፦`;
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(myReferralUrl)}&text=${encodeURIComponent(shareText)}`;
+            tg.openTelegramLink(shareUrl);
+        }
+
+        function renderHistory() {
+            const listDiv = document.getElementById('userHistoryList');
+            let localList = getStoredHistory();
+
+            fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
+                .then(res => res.json())
+                .then(serverHistory => {
+                    if (Array.isArray(serverHistory) && serverHistory.length > 0) {
+                        serverHistory.forEach(sItem => {
+                            const idx = localList.findIndex(l => String(l.id) === String(sItem.id));
+                            if (idx !== -1) {
+                                localList[idx].status = sItem.status;
+                            } else {
+                                localList.push(sItem);
                             }
-                            send_telegram_message(chat_id, welcome_text, keyboard)
-        except Exception:
-            time.sleep(2)
+                        });
+                        setStoredHistory(localList);
+                    }
+                    displayHistoryItems(localList);
+                })
+                .catch(() => {
+                    displayHistoryItems(localList);
+                });
+        }
 
-if __name__ == "__main__":
-    t = threading.Thread(target=bot_polling_loop, daemon=True)
-    t.start()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+        function displayHistoryItems(history) {
+            const listDiv = document.getElementById('userHistoryList');
+            if (!history || history.length === 0) {
+                listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ምንም የማውጣት ታሪክ የለም።</div>`;
+                return;
+            }
+
+            listDiv.innerHTML = "";
+            history.slice().reverse().forEach(item => {
+                const isSuccess = item.status === "Success";
+                const div = document.createElement('div');
+                div.className = "history-card";
+                div.innerHTML = `
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px;">${item.amount} ETB</div>
+                        <div style="font-size: 11px; color: var(--text-gray); margin-top: 2px;">${item.method} • ${item.phone}</div>
+                    </div>
+                    <div>
+                        <span class="${isSuccess ? 'badge-success' : 'badge-pending'}">
+                            ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
+                        </span>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        function submitWithdraw() {
+            const amount = parseFloat(document.getElementById('withdrawAmount').value);
+            const phone = document.getElementById('withdrawPhone').value.trim();
+            const method = document.getElementById('withdrawMethod').value;
+            const msgBox = document.getElementById('withdrawMsg');
+
+            if (!amount || amount < 60) {
+                msgBox.style.color = "#da3633";
+                msgBox.innerText = "ዝቅተኛው የማውጫ መጠን 60 ETB ነው!";
+                return;
+            }
+
+            if (!phone) {
+                msgBox.style.color = "#da3633";
+                msgBox.innerText = "እባክዎ ስልክ ቁጥር ያስገቡ!";
+                return;
+            }
+
+            msgBox.style.color = "#8fa0bc";
+            msgBox.innerText = "በማስተናገድ ላይ...";
+
+            fetch(`${API_BASE}/api/withdraw`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: currentUserId,
+                    amount: amount,
+                    phone: phone,
+                    method: method
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    msgBox.style.color = "#24a1de";
+                    msgBox.innerText = "ጥያቄዎ ተልኳል! አድሚኑ አረጋግጦ ይልክልዎታል።";
+                    document.getElementById('balance').innerText = data.balance.toFixed(2);
+                    document.getElementById('withdrawAmount').value = "";
+                    document.getElementById('withdrawPhone').value = "";
+
+                    const localList = getStoredHistory();
+                    const newEntry = data.request || {
+                        id: Date.now(),
+                        amount: amount,
+                        phone: phone,
+                        method: method,
+                        status: "Pending"
+                    };
+                    localList.push(newEntry);
+                    setStoredHistory(localList);
+
+                    const adminBack = getStoredAdminReqs();
+                    adminBack.push(newEntry);
+                    setStoredAdminReqs(adminBack);
+
+                    displayHistoryItems(localList);
+                } else {
+                    msgBox.style.color = "#da3633";
+                    msgBox.innerText = data.message || "ስህተት ተፈጥሯል!";
+                }
+            })
+            .catch(() => {
+                msgBox.style.color = "#da3633";
+                msgBox.innerText = "የኔትወርክ ስህተት ተፈጥሯል!";
+            });
+        }
+
+        function loadAdminRequests() {
+            const listDiv = document.getElementById('requestsList');
+            let localAdmin = getStoredAdminReqs();
+
+            fetch(`${API_BASE}/api/admin/requests`)
+                .then(res => res.json())
+                .then(serverReqs => {
+                    if (Array.isArray(serverReqs) && serverReqs.length > 0) {
+                        serverReqs.forEach(s => {
+                            const idx = localAdmin.findIndex(l => String(l.id) === String(s.id));
+                            if (idx !== -1) {
+                                localAdmin[idx].status = s.status;
+                            } else {
+                                localAdmin.push(s);
+                            }
+                        });
+                        setStoredAdminReqs(localAdmin);
+                    }
+                    displayAdminItems(localAdmin);
+                })
+                .catch(() => {
+                    displayAdminItems(localAdmin);
+                });
+        }
+
+        function displayAdminItems(reqs) {
+            const listDiv = document.getElementById('requestsList');
+            if (!reqs || reqs.length === 0) {
+                listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 13px; padding: 20px;">ምንም የማውጣት ጥያቄ የለም።</div>`;
+                return;
+            }
+
+            listDiv.innerHTML = "";
+            reqs.slice().reverse().forEach(req => {
+                const isSuccess = req.status === "Success";
+                const item = document.createElement('div');
+                item.className = "req-card";
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                        <span>👤 User: ${req.user_id}</span>
+                        <span style="color: var(--accent-blue); font-size: 15px;">${req.amount} ETB</span>
+                    </div>
+                    <div style="color: var(--text-gray); font-size: 12px;">
+                        💳 ዘዴ: <b>${req.method}</b> | 📱 ስልክ: <b>${req.phone}</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                        <span style="font-size: 12px; color: ${isSuccess ? '#24a1de' : '#f59e0b'};">
+                            ሁኔታ: ${isSuccess ? 'Success ✅' : 'Pending ⏳'}
+                        </span>
+                        ${!isSuccess ? `<button class="btn-sm" onclick="approveReq('${req.id}')">✅ Approve</button>` : ''}
+                    </div>
+                `;
+                listDiv.appendChild(item);
+            });
+        }
+
+        function approveReq(id) {
+            const localAdmin = getStoredAdminReqs();
+            const target = localAdmin.find(l => String(l.id) === String(id));
+            if (target) {
+                target.status = "Success";
+                setStoredAdminReqs(localAdmin);
+                displayAdminItems(localAdmin);
+            }
+
+            const localHist = getStoredHistory();
+            const histTarget = localHist.find(l => String(l.id) === String(id));
+            if (histTarget) {
+                histTarget.status = "Success";
+                setStoredHistory(localHist);
+            }
+
+            fetch(`${API_BASE}/api/admin/approve`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ req_id: id })
+            });
+        }
+
+        fetch(`${API_BASE}/api/user?id=${currentUserId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.verified) {
+                    localStorage.setItem(`verified_${currentUserId}`, "true");
+                    unlockApp();
+                }
+            })
+            .catch(() => {});
+    </script>
+</body>
+</html>
