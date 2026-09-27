@@ -32,16 +32,26 @@ def save_data(data):
     except Exception as e:
         print(f"Error saving data: {e}")
 
+def get_today_str():
+    return (datetime.datetime.utcnow() + datetime.timedelta(hours=3)).strftime("%Y-%m-%d")
+
 def get_or_create_user(db, user_id):
     str_id = str(user_id).strip()
+    today = get_today_str()
     if str_id not in db["users"]:
         db["users"][str_id] = {
             "balance": 0.0,
             "invites": 0,
             "streak": 0,
             "last_checkin_date": "",
-            "verified": False
+            "verified": False,
+            "ads_watched_today": 0,
+            "last_ad_date": today
         }
+    else:
+        if db["users"][str_id].get("last_ad_date") != today:
+            db["users"][str_id]["ads_watched_today"] = 0
+            db["users"][str_id]["last_ad_date"] = today
     return db["users"][str_id]
 
 def send_telegram_message(chat_id, text, reply_markup=None):
@@ -63,10 +73,6 @@ def check_member(channel, user_id):
     except Exception:
         return True
 
-def get_today_str():
-    # የቀኑን ቀን በ UTC+3 (የኢትዮጵያ ሰዓት) ያሰላል
-    return (datetime.datetime.utcnow() + datetime.timedelta(hours=3)).strftime("%Y-%m-%d")
-
 @app.route("/")
 def index():
     return "Plus App Backend is live and running!"
@@ -82,6 +88,8 @@ def get_user():
     can_checkin = user_data.get("last_checkin_date") != today
     res = dict(user_data)
     res["can_checkin"] = can_checkin
+    # በቀን 10 ማስታወቂያ
+    res["ads_remaining"] = max(0, 10 - user_data.get("ads_watched_today", 0))
     return jsonify(res)
 
 @app.route("/api/verify_membership", methods=["POST"])
@@ -105,7 +113,6 @@ def verify_membership():
             "verified": False
         })
 
-    # ሪፈራል ቆጥሮ 4 ETB መጨመር እና መልእክት መላክ
     if referrer_id and referrer_id != user_id and user_id not in db["invited_users"]:
         db["invited_users"].append(user_id)
         ref_user = get_or_create_user(db, referrer_id)
@@ -151,6 +158,31 @@ def checkin():
         "balance": user_data["balance"],
         "streak": user_data["streak"],
         "can_checkin": False
+    })
+
+# 1 ማስታወቂያ = 1.00 ETB (በቀን እስከ 10 ማስታወቂያ)
+@app.route("/api/watch_ad", methods=["POST"])
+def watch_ad():
+    data = request.json or {}
+    user_id = str(data.get("user_id", ADMIN_ID)).strip()
+    db = load_data()
+    user_data = get_or_create_user(db, user_id)
+
+    watched = user_data.get("ads_watched_today", 0)
+    if watched >= 10:
+        return jsonify({
+            "status": "error",
+            "message": "የዛሬውን 10 ማስታወቂያ አይተው ጨርሰዋል! ነገ ከሌሊቱ 6:00 በኋላ ይመለሱ።"
+        }), 400
+
+    user_data["balance"] += 1.0
+    user_data["ads_watched_today"] = watched + 1
+    save_data(db)
+
+    return jsonify({
+        "status": "success",
+        "balance": user_data["balance"],
+        "ads_remaining": 10 - user_data["ads_watched_today"]
     })
 
 @app.route("/api/withdraw", methods=["POST"])
@@ -246,7 +278,7 @@ def bot_polling_loop():
                         if text.startswith("/start"):
                             welcome_text = (
                                 f"👋 *እንኳን ወደ Plus App በደህና መጡ!*\n\n"
-                                f"በየቀኑ Check-in በማድረግ እና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
+                                f"በየቀኑ Check-in በማድረግ፣ ቪዲዮ በማየትና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
                                 f"ከታች ያለውን *«🚀 Open Plus App»* ይጫኑ!"
                             )
                             keyboard = {
