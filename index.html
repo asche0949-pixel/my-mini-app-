@@ -14,7 +14,6 @@
             --text-white: #ffffff;
             --text-gray: #8fa0bc;
             --border-color: #1f2d47;
-            --streak-circle: #172338;
         }
 
         * {
@@ -190,120 +189,25 @@
             width: 100%;
         }
 
-        .streak-card {
-            background-color: var(--card-bg);
+        /* WATCH ADS CARD */
+        .ad-card {
+            background: linear-gradient(135deg, #1c2b47, #131c2e);
+            border: 1px solid #24a1de44;
             border-radius: 16px;
             padding: 18px;
             display: flex;
             flex-direction: column;
-            gap: 14px;
-            border: 1px solid var(--border-color);
+            gap: 12px;
         }
 
-        .streak-header {
+        .ad-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .streak-title-wrap {
-            display: flex;
             align-items: center;
-            gap: 10px;
         }
 
-        .fire-icon {
-            font-size: 24px;
-            background: #1c2b47;
-            padding: 6px 10px;
-            border-radius: 10px;
-        }
-
-        .streak-title {
-            font-size: 15px;
-            font-weight: 700;
-        }
-
-        .streak-sub {
-            font-size: 11px;
-            color: var(--text-gray);
-            margin-top: 2px;
-        }
-
-        .streak-days-count {
-            text-align: right;
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--accent-blue);
-        }
-
-        .streak-days-count span {
-            display: block;
-            font-size: 10px;
-            color: var(--text-gray);
-            font-weight: normal;
-        }
-
-        .streak-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-            text-align: center;
-            margin: 6px 0;
-        }
-
-        .streak-col {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .streak-circle {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background-color: var(--streak-circle);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-gray);
-            border: 1px solid var(--border-color);
-        }
-
-        .streak-circle.active {
-            border: 1.5px solid var(--accent-blue);
-            color: var(--accent-blue);
-            background-color: #162640;
-        }
-
-        .streak-circle.done {
-            border: 1.5px solid var(--primary-blue);
-            background-color: var(--primary-blue);
-            color: white;
-        }
-
-        .streak-reward {
-            font-size: 9px;
-            color: var(--text-gray);
-        }
-
-        .next-reward-banner {
-            background-color: #17243c;
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 12px;
-            color: var(--text-gray);
-        }
-
-        .next-reward-banner b {
-            color: var(--accent-blue);
-        }
-
-        .btn-checkin {
-            background: linear-gradient(135deg, #0088cc, #24a1de);
+        .btn-ad {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
             color: white;
             border: none;
             border-radius: 12px;
@@ -312,9 +216,13 @@
             font-weight: 700;
             cursor: pointer;
             width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .btn-checkin:disabled {
+        .btn-ad:disabled {
             background: #172338;
             color: var(--text-gray);
             cursor: not-allowed;
@@ -462,6 +370,26 @@
             gap: 8px;
             font-size: 13px;
         }
+
+        #adModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.92);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .ad-timer-box {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--accent-blue);
+            margin: 16px 0;
+        }
     </style>
 </head>
 <body>
@@ -527,36 +455,67 @@
                     <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
                 </div>
 
-                <div class="streak-card">
-                    <div class="streak-header">
-                        <div class="streak-title-wrap">
-                            <div class="fire-icon">🔥</div>
+                <!-- WATCH ADS CARD (1 ETB / 10 ADS) -->
+                <div class="ad-card">
+                    <div class="ad-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 22px;">📺</span>
                             <div>
-                                <div class="streak-title">Daily Streak</div>
-                                <div class="streak-sub">Keep earning every day</div>
+                                <div style="font-weight: 700; font-size: 15px;">Watch Ad & Earn</div>
+                                <div style="font-size: 11px; color: var(--text-gray);">ቀሪ ማስታወቂያ፦ <b id="adsRemainingText" style="color: #f59e0b;">10</b> / 10</div>
                             </div>
                         </div>
-                        <div class="streak-days-count">
-                            <span id="streak-val">0</span>
-                            <span>/ 7 days</span>
+                        <span style="background: #2b1f0c; color: #f59e0b; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold;">+1.00 ETB</span>
+                    </div>
+                    <button class="btn-ad" id="watchAdBtn" onclick="startWatchingAd()">
+                        ▶️ Watch Ad (+1.00 ETB)
+                    </button>
+                </div>
+
+                <!-- QUICK ACTIONS CARD -->
+                <div class="card" style="display: flex; flex-direction: row; gap: 12px; justify-content: space-between;">
+                    <button class="btn-sm" style="flex: 1; padding: 14px;" onclick="switchTab('tasks')">🎯 Tasks (2 ETB)</button>
+                    <button class="btn-sm btn-sm-secondary" style="flex: 1; padding: 14px; margin-right: 0;" onclick="switchTab('invite')">👥 Invite (3 ETB)</button>
+                </div>
+
+            </div>
+
+            <!-- TASKS TAB -->
+            <div id="tab-tasks" class="tab-content">
+                <h3 style="font-size: 16px;">🎯 Complete Tasks & Earn</h3>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="font-size: 24px; background: #1c2b47; padding: 6px; border-radius: 50%;">📢</div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;">Money Power</div>
+                                <div style="font-size: 11px; color: var(--text-gray);">ቻናሉን ይቀላቀሉ (+2.00 ETB)</div>
+                            </div>
                         </div>
+                        <span style="color: var(--accent-blue); font-weight: bold; font-size: 13px;">+2.00 ETB</span>
                     </div>
-
-                    <div class="streak-grid">
-                        <div class="streak-col"><div class="streak-circle active" id="day-1">1</div><div class="streak-reward">3 ETB</div></div>
-                        <div class="streak-col"><div class="streak-circle" id="day-2">2</div><div class="streak-reward">3 ETB</div></div>
-                        <div class="streak-col"><div class="streak-circle" id="day-3">3</div><div class="streak-reward">3 ETB</div></div>
-                        <div class="streak-col"><div class="streak-circle" id="day-4">4</div><div class="streak-reward">3 ETB</div></div>
-                        <div class="streak-col"><div class="streak-circle" id="day-5">5</div><div class="streak-reward">3 ETB</div></div>
-                        <div class="streak-col"><div class="streak-circle" id="day-6">6</div><div class="streak-reward">3 ETB</div></div>
-                        <div class="streak-col"><div class="streak-circle" id="day-7">7</div><div class="streak-reward">3 ETB</div></div>
+                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                        <button class="btn-sm btn-sm-secondary" style="flex: 1;" onclick="openChannel('https://t.me/money_power54')">1. Join</button>
+                        <button class="btn-sm" style="flex: 1;" id="btn-task-money" onclick="doVerifyTask('task_money_power', 'btn-task-money')">2. Check</button>
                     </div>
+                </div>
 
-                    <div class="next-reward-banner">
-                        🎁 Earn <b>3.00 ETB</b> on your next check-in.
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="font-size: 24px; background: #1c2b47; padding: 6px; border-radius: 50%;">📢</div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;">Tips Mickey</div>
+                                <div style="font-size: 11px; color: var(--text-gray);">ቻናሉን ይቀላቀሉ (+2.00 ETB)</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--accent-blue); font-weight: bold; font-size: 13px;">+2.00 ETB</span>
                     </div>
-
-                    <button class="btn-checkin" id="checkinBtn" onclick="doCheckIn()">Check In (3.00 ETB)</button>
+                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                        <button class="btn-sm btn-sm-secondary" style="flex: 1;" onclick="openChannel('https://t.me/Tipsmickey')">1. Join</button>
+                        <button class="btn-sm" style="flex: 1;" id="btn-task-tips" onclick="doVerifyTask('task_tips_mickey', 'btn-task-tips')">2. Check</button>
+                    </div>
                 </div>
             </div>
 
@@ -566,7 +525,7 @@
                 <div class="card">
                     <div style="font-weight: 700; font-size: 16px;">ጓደኞችህን ጋብዝ!</div>
                     <div style="color: var(--text-gray); font-size: 13px; line-height: 1.5;">
-                        ለእያንዳንዱ አንተ በጋበዝከው ሰው <b style="color: var(--accent-blue);">4.00 ETB</b> ወዲያውኑ ወደ አካውንትህ ይገባል።
+                        ለእያንዳንዱ አንተ በጋበዝከው ሰው <b style="color: var(--accent-blue);">3.00 ETB</b> ወዲያውኑ ወደ አካውንትህ ይገባል።
                     </div>
                     
                     <div style="margin-top: 8px;">
@@ -617,7 +576,7 @@
                         <label>የብር መጠን (ዝቅተኛው 60 ETB)</label>
                         <input type="number" id="withdrawAmount" placeholder="60">
                     </div>
-                    <button class="btn-checkin" onclick="submitWithdraw()">ብር አውጣ</button>
+                    <button class="btn-checkin" style="background: linear-gradient(135deg, #0088cc, #24a1de); color: white; border: none; border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%;" onclick="submitWithdraw()">ብር አውጣ</button>
                     <div id="withdrawMsg" style="font-size: 12px; text-align: center; margin-top: 4px;"></div>
                 </div>
 
@@ -646,11 +605,23 @@
 
     </div>
 
+    <!-- AD WATCHING MODAL -->
+    <div id="adModal">
+        <div style="font-size: 20px; font-weight: 800;">📺 Watching Sponsored Ad</div>
+        <div style="font-size: 13px; color: var(--text-gray); margin-top: 6px;">ብርዎን ለመቀበል ቆጣሪው እስኪያልቅ ይጠብቁ...</div>
+        <div class="ad-timer-box" id="adTimerBox">10s</div>
+        <div style="font-size: 11px; color: #f59e0b;">ማስታወቂያውን ሳያቋርጡ ይቆዩ!</div>
+    </div>
+
     <!-- Bottom Navigation -->
     <div class="bottom-nav" id="bottomNav">
         <div class="nav-item active" onclick="switchTab('home')">
             <div class="nav-icon">🏠</div>
             <div>Home</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('tasks')">
+            <div class="nav-icon">🎯</div>
+            <div>Tasks</div>
         </div>
         <div class="nav-item" onclick="switchTab('invite')">
             <div class="nav-icon">👥</div>
@@ -677,11 +648,9 @@
         const user = tg.initDataUnsafe?.user || { id: "test_user", first_name: "User" };
         const currentUserId = String(user.id).trim();
 
-        // ሪፈራል ሊንክ - ቀጥታ አፑን የሚከፍት
         const myReferralUrl = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
         document.getElementById('refLinkInput').value = myReferralUrl;
 
-        // ሪፈራል ID ማግኘት እና በስልኩ ማስቀመጥ
         let urlParams = new URLSearchParams(window.location.search);
         let rawParam = tg.initDataUnsafe?.start_param || urlParams.get('startapp') || urlParams.get('tgWebAppStartParam') || "";
         
@@ -694,13 +663,13 @@
         }
 
         let currentBalance = 0.0;
-        let streak = 0;
+        let adsLeft = 10;
+        let completedTasks = [];
 
         if (currentUserId === ADMIN_ID) {
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
-        // አንዴ ቻናሎቹ ከተረጋገጡ በስልኩ እንዲያስታውሰው ማድረግ (ዳግመኛ እንዳይጠይቅ)
         const isLocallyVerified = localStorage.getItem(`verified_${currentUserId}`) === "true";
         if (isLocallyVerified) {
             unlockApp();
@@ -773,7 +742,7 @@
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
             
-            const tabs = ['home', 'invite', 'wallet', 'admin'];
+            const tabs = ['home', 'tasks', 'invite', 'wallet', 'admin'];
             const idx = tabs.indexOf(tabName);
             if(idx !== -1) {
                 document.querySelectorAll('.bottom-nav .nav-item')[idx].classList.add('active');
@@ -786,19 +755,6 @@
             }
         }
 
-        function updateStreakCircles(currentStreak) {
-            for (let i = 1; i <= 7; i++) {
-                const el = document.getElementById(`day-${i}`);
-                if (!el) continue;
-                el.className = "streak-circle";
-                if (i < currentStreak) {
-                    el.classList.add("done");
-                } else if (i === currentStreak) {
-                    el.classList.add("active");
-                }
-            }
-        }
-
         function fetchUserData() {
             fetch(`${API_BASE}/api/user?id=${currentUserId}`)
                 .then(res => res.json())
@@ -807,34 +763,99 @@
                         localStorage.setItem(`verified_${currentUserId}`, "true");
                     }
                     currentBalance = data.balance || 0;
-                    streak = data.streak || 0;
                     const invites = data.invites || 0;
-                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                    document.getElementById('streak-val').innerText = streak;
+                    adsLeft = data.ads_remaining !== undefined ? data.ads_remaining : 10;
+                    completedTasks = data.completed_tasks || [];
 
-                    updateStreakCircles(streak === 0 ? 1 : streak);
+                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                    document.getElementById('adsRemainingText').innerText = adsLeft;
+
+                    const adBtn = document.getElementById('watchAdBtn');
+                    if (adsLeft <= 0) {
+                        adBtn.disabled = true;
+                        adBtn.innerText = "Limit Reached Today (0/10)";
+                    } else {
+                        adBtn.disabled = false;
+                        adBtn.innerText = "▶️ Watch Ad (+1.00 ETB)";
+                    }
 
                     document.getElementById('invite-count').innerText = invites;
-                    document.getElementById('invite-earned').innerText = (invites * 4.0).toFixed(2) + " ETB";
+                    document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
 
-                    const chkBtn = document.getElementById('checkinBtn');
-                    if (data.can_checkin === false) {
-                        chkBtn.disabled = true;
-                        chkBtn.innerText = "Claimed Today ✓";
-                    } else {
-                        chkBtn.disabled = false;
-                        chkBtn.innerText = "Check In (3.00 ETB)";
+                    // ታስኮች
+                    if (completedTasks.includes('task_money_power')) {
+                        const b1 = document.getElementById('btn-task-money');
+                        b1.disabled = true;
+                        b1.innerText = "Done ✓";
+                        b1.style.background = "#172338";
+                    }
+                    if (completedTasks.includes('task_tips_mickey')) {
+                        const b2 = document.getElementById('btn-task-tips');
+                        b2.disabled = true;
+                        b2.innerText = "Done ✓";
+                        b2.style.background = "#172338";
                     }
                 })
                 .catch(err => console.log(err));
         }
 
-        function doCheckIn() {
-            const btn = document.getElementById('checkinBtn');
-            btn.disabled = true;
+        function doVerifyTask(taskId, btnId) {
+            const btn = document.getElementById(btnId);
             btn.innerText = "...";
+            btn.disabled = true;
 
-            fetch(`${API_BASE}/api/checkin`, {
+            fetch(`${API_BASE}/api/task/verify`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: currentUserId, task_id: taskId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    currentBalance = data.balance;
+                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                    btn.innerText = "Done ✓";
+                    btn.style.background = "#172338";
+                    alert(`🎉 እንኳን ደስ አለዎት! ቻናሉን ስለተቀላቀሉ +${data.reward}.00 ETB ወደ ሂሳብዎ ገብቷል!`);
+                } else {
+                    alert(data.message || "እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ!");
+                    btn.innerText = "2. Check";
+                    btn.disabled = false;
+                }
+            })
+            .catch(() => {
+                alert("የኔትወርክ ስህተት ተፈጥሯል!");
+                btn.innerText = "2. Check";
+                btn.disabled = false;
+            });
+        }
+
+        function startWatchingAd() {
+            if (adsLeft <= 0) {
+                alert("የዛሬውን 10 ማስታወቂያ አይተው ጨርሰዋል! ነገ ከሌሊቱ 6:00 በኋላ ይመለሱ።");
+                return;
+            }
+
+            const modal = document.getElementById('adModal');
+            const timerBox = document.getElementById('adTimerBox');
+            modal.style.display = "flex";
+
+            let seconds = 10;
+            timerBox.innerText = seconds + "s";
+
+            const timer = setInterval(() => {
+                seconds--;
+                timerBox.innerText = seconds + "s";
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    modal.style.display = "none";
+                    claimAdReward();
+                }
+            }, 1000);
+        }
+
+        function claimAdReward() {
+            fetch(`${API_BASE}/api/watch_ad`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ user_id: currentUserId })
@@ -842,24 +863,22 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
-                    btn.innerText = "Claimed Today ✓";
-                    btn.disabled = true;
                     currentBalance = data.balance;
-                    streak = data.streak;
+                    adsLeft = data.ads_remaining;
                     document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                    document.getElementById('streak-val').innerText = streak;
-                    updateStreakCircles(streak);
-                    alert("🎉 እንኳን ደስ አለዎት! የዛሬውን 3.00 ETB ወስደዋል። ነገ ከሌሊቱ 6:00 ሰዓት በኋላ Day " + (streak % 7 + 1) + " ይወስዳሉ!");
+                    document.getElementById('adsRemainingText').innerText = adsLeft;
+                    alert("🎉 እንኳን ደስ አለዎት! ማስታወቂያ በማየት +1.00 ETB አግኝተዋል!");
+
+                    if (adsLeft <= 0) {
+                        const adBtn = document.getElementById('watchAdBtn');
+                        adBtn.disabled = true;
+                        adBtn.innerText = "Limit Reached Today (0/10)";
+                    }
                 } else {
-                    alert(data.message || "የዛሬውን አስቀድመው ወስደዋል!");
-                    btn.innerText = "Claimed Today ✓";
-                    btn.disabled = true;
+                    alert(data.message || "ስህተት ተፈጥሯል!");
                 }
             })
-            .catch(() => {
-                btn.innerText = "Check In (3.00 ETB)";
-                btn.disabled = false;
-            });
+            .catch(() => alert("የኔትወርክ ስህተት ተፈጥሯል!"));
         }
 
         function copyReferralLink() {
@@ -876,7 +895,7 @@
         }
 
         function shareInvite() {
-            const shareText = `🎁 በየቀኑ 3 ETB Daily Check-in እየወሰዱ እና ሰዎችን በመጋበዝ (4 ETB) በቀላሉ በቴሌብር ገንዘብ ያግኙ!\n\n👇 አሁኑኑ ሚኒ አፑን ይክፈቱ፦`;
+            const shareText = `🎁 ማስታወቂያ እያዩ (+1.00 ETB)፣ ታስኮችን እየሰሩ እና ሰዎችን በመጋበዝ (3 ETB) በቀላሉ በቴሌብር ገንዘብ ያግኙ!\n\n👇 አሁኑኑ ሚኒ አፑን ይክፈቱ፦`;
             const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(myReferralUrl)}&text=${encodeURIComponent(shareText)}`;
             tg.openTelegramLink(shareUrl);
         }
