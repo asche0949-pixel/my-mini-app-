@@ -1,7 +1,6 @@
 import os
 import json
 import time
-import datetime
 import threading
 import requests
 from flask import Flask, request, jsonify
@@ -15,10 +14,8 @@ ADMIN_ID = "8556328355"
 BOT_USERNAME = "Plus_appbot"
 DATA_FILE = "database.json"
 
-# Gate Channels
-CHANNELS = ["@PlusTechHub", "@Eth_online_job", "@Alphatech_earn"]
+GATE_CHANNELS = ["@PlusTechHub", "@Eth_online_job", "@Alphatech_earn"]
 
-# Task Channels
 TASK_CHANNELS = {
     "task_money_power": {"channel": "@money_power54", "reward": 2.0},
     "task_tips_mickey": {"channel": "@Tipsmickey", "reward": 2.0}
@@ -40,25 +37,16 @@ def save_data(data):
     except Exception as e:
         print(f"Error saving data: {e}")
 
-def get_today_str():
-    return (datetime.datetime.utcnow() + datetime.timedelta(hours=3)).strftime("%Y-%m-%d")
-
 def get_or_create_user(db, user_id):
     str_id = str(user_id).strip()
-    today = get_today_str()
     if str_id not in db["users"]:
         db["users"][str_id] = {
             "balance": 0.0,
             "invites": 0,
             "verified": False,
-            "ads_watched_today": 0,
-            "last_ad_date": today,
             "completed_tasks": []
         }
     else:
-        if db["users"][str_id].get("last_ad_date") != today:
-            db["users"][str_id]["ads_watched_today"] = 0
-            db["users"][str_id]["last_ad_date"] = today
         if "completed_tasks" not in db["users"][str_id]:
             db["users"][str_id]["completed_tasks"] = []
     return db["users"][str_id]
@@ -76,11 +64,13 @@ def send_telegram_message(chat_id, text, reply_markup=None):
 def check_member(channel, user_id):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
     try:
-        res = requests.get(url, params={"chat_id": channel, "user_id": user_id}, timeout=5).json()
-        status = res.get("result", {}).get("status", "")
-        return status in ["member", "administrator", "creator"]
+        res = requests.get(url, params={"chat_id": channel, "user_id": user_id}, timeout=6).json()
+        if res.get("ok"):
+            status = res.get("result", {}).get("status", "")
+            return status in ["member", "administrator", "creator", "restricted"]
+        return False
     except Exception:
-        return True
+        return False
 
 @app.route("/")
 def index():
@@ -92,10 +82,7 @@ def get_user():
     db = load_data()
     user_data = get_or_create_user(db, user_id)
     save_data(db)
-
-    res = dict(user_data)
-    res["ads_remaining"] = max(0, 10 - user_data.get("ads_watched_today", 0))
-    return jsonify(res)
+    return jsonify(user_data)
 
 @app.route("/api/verify_membership", methods=["POST"])
 def verify_membership():
@@ -107,18 +94,17 @@ def verify_membership():
     user_data = get_or_create_user(db, user_id)
 
     missing = []
-    for ch in CHANNELS:
+    for ch in GATE_CHANNELS:
         if not check_member(ch, user_id):
             missing.append(ch)
 
     if missing:
         return jsonify({
             "status": "not_joined",
-            "message": f"እባክዎ መጀመሪያ የቀሩትን ቻናሎች ይቀላቀሉ፦ {', '.join(missing)}",
+            "message": f"አልተቀላቀሉም! እባክዎ መጀመሪያ የቀሩትን ቻናሎች ይቀላቀሉ፦ {', '.join(missing)}",
             "verified": False
         })
 
-    # ሪፈራል 3 ETB መጨመር እና ለጋባዡ መልእክት መላክ
     if referrer_id and referrer_id != user_id and user_id not in db["invited_users"]:
         db["invited_users"].append(user_id)
         ref_user = get_or_create_user(db, referrer_id)
@@ -127,7 +113,7 @@ def verify_membership():
 
         ref_msg = (
             f"🎉 *እንኳን ደስ አለዎት!*\n\n"
-            f"👤 አዲስ ተጠቃሚ በእርስዎ የመጋበዣ ሊንክ ተቀላቅሏል!\n"
+            f"👤 አዲስ ተጠቃሚ በእርስዎ ሊንክ ተቀላቅሏል!\n"
             f"💰 *+3.00 ETB* ወደ ሂሳብዎ ገብቷል!\n\n"
             f"💵 ጠቅላላ ሂሳብዎ፦ *{ref_user['balance']:.2f} ETB*\n"
             f"👥 ጠቅላላ የጋበዟቸው ሰዎች፦ *{ref_user['invites']}*"
@@ -139,32 +125,6 @@ def verify_membership():
 
     return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
 
-# ማስታወቂያ ማየት (1 ማስታወቂያ = 1 ETB)
-@app.route("/api/watch_ad", methods=["POST"])
-def watch_ad():
-    data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID)).strip()
-    db = load_data()
-    user_data = get_or_create_user(db, user_id)
-
-    watched = user_data.get("ads_watched_today", 0)
-    if watched >= 10:
-        return jsonify({
-            "status": "error",
-            "message": "የዛሬውን 10 ማስታወቂያ አይተው ጨርሰዋል! ነገ ከሌሊቱ 6:00 በኋላ ይመለሱ።"
-        }), 400
-
-    user_data["balance"] += 1.0
-    user_data["ads_watched_today"] = watched + 1
-    save_data(db)
-
-    return jsonify({
-        "status": "success",
-        "balance": user_data["balance"],
-        "ads_remaining": 10 - user_data["ads_watched_today"]
-    })
-
-# የታስክ ማረጋገጫ API
 @app.route("/api/task/verify", methods=["POST"])
 def verify_task():
     data = request.json or {}
@@ -182,7 +142,7 @@ def verify_task():
 
     task_info = TASK_CHANNELS[task_id]
     if not check_member(task_info["channel"], user_id):
-        return jsonify({"status": "not_joined", "message": "እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ!"}), 400
+        return jsonify({"status": "not_joined", "message": "አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ።"}), 400
 
     reward = task_info["reward"]
     user_data["balance"] += reward
@@ -267,6 +227,34 @@ def approve_request():
             break
     return jsonify({"status": "success"})
 
+# አድሚኑ በቀጥታ ለተጠቃሚ ብር መሙያ (Add/Send Balance)
+@app.route("/api/admin/add_balance", methods=["POST"])
+def add_balance():
+    data = request.json or {}
+    admin_id = str(data.get("admin_id", "")).strip()
+    target_id = str(data.get("target_id", "")).strip()
+    amount = float(data.get("amount", 0))
+
+    if admin_id != ADMIN_ID:
+        return jsonify({"status": "error", "message": "ያልተፈቀደ አሰራር!"}), 403
+
+    if not target_id or amount <= 0:
+        return jsonify({"status": "error", "message": "እባክዎ ትክክለኛ የተጠቃሚ ID እና የብር መጠን ያስገቡ!"}), 400
+
+    db = load_data()
+    target_user = get_or_create_user(db, target_id)
+    target_user["balance"] += amount
+    save_data(db)
+
+    alert_msg = (
+        f"🎁 *ስጦታ ደርሶዎታል!*\n\n"
+        f"የአስተዳዳሪው ስጦታ *+{amount:.2f} ETB* ወደ አካውንትዎ ገብቷል!\n"
+        f"💵 አጠቃላይ ቀሪ ሂሳብዎ፦ *{target_user['balance']:.2f} ETB*"
+    )
+    send_telegram_message(target_id, alert_msg)
+
+    return jsonify({"status": "success", "new_balance": target_user["balance"]})
+
 def bot_polling_loop():
     try:
         requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=True", timeout=5)
@@ -289,7 +277,7 @@ def bot_polling_loop():
                         if text.startswith("/start"):
                             welcome_text = (
                                 f"👋 *እንኳን ወደ Plus App በደህና መጡ!*\n\n"
-                                f"ማስታወቂያዎችን በማየት፣ ታስኮችን በመስራት እና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
+                                f"ታስኮችን በመስራት እና ጓደኞችዎን በመጋበዝ ገንዘብ ያግኙ!\n\n"
                                 f"ከታች ያለውን *«🚀 Open Plus App»* ይጫኑ!"
                             )
                             keyboard = {
