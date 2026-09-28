@@ -189,45 +189,6 @@
             width: 100%;
         }
 
-        /* WATCH ADS CARD */
-        .ad-card {
-            background: linear-gradient(135deg, #1c2b47, #131c2e);
-            border: 1px solid #24a1de44;
-            border-radius: 16px;
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .ad-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .btn-ad {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 14px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-ad:disabled {
-            background: #172338;
-            color: var(--text-gray);
-            cursor: not-allowed;
-        }
-
         .card {
             background-color: var(--card-bg);
             border-radius: 16px;
@@ -243,8 +204,8 @@
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 8px 14px;
-            font-size: 12px;
+            padding: 10px 14px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
         }
@@ -370,26 +331,6 @@
             gap: 8px;
             font-size: 13px;
         }
-
-        #adModal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.92);
-            z-index: 9999;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            text-align: center;
-        }
-
-        .ad-timer-box {
-            font-size: 42px;
-            font-weight: 800;
-            color: var(--accent-blue);
-            margin: 16px 0;
-        }
     </style>
 </head>
 <body>
@@ -455,27 +396,19 @@
                     <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
                 </div>
 
-                <!-- WATCH ADS CARD (1 ETB / 10 ADS) -->
-                <div class="ad-card">
-                    <div class="ad-header">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 22px;">📺</span>
-                            <div>
-                                <div style="font-weight: 700; font-size: 15px;">Watch Ad & Earn</div>
-                                <div style="font-size: 11px; color: var(--text-gray);">ቀሪ ማስታወቂያ፦ <b id="adsRemainingText" style="color: #f59e0b;">10</b> / 10</div>
-                            </div>
-                        </div>
-                        <span style="background: #2b1f0c; color: #f59e0b; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold;">+1.00 ETB</span>
+                <!-- EARN MENU -->
+                <div class="card">
+                    <h3 style="font-size: 15px;">Ways to Earn Money</h3>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
+                        <button class="btn-sm" style="padding: 14px; text-align: left; display: flex; justify-content: space-between; align-items: center;" onclick="switchTab('tasks')">
+                            <span>🎯 Complete Channel Tasks</span>
+                            <b style="color: #ffffff;">+2.00 ETB</b>
+                        </button>
+                        <button class="btn-sm btn-sm-secondary" style="padding: 14px; text-align: left; display: flex; justify-content: space-between; align-items: center; margin-right: 0;" onclick="switchTab('invite')">
+                            <span>👥 Invite Friends</span>
+                            <b style="color: var(--accent-blue);">+3.00 ETB</b>
+                        </button>
                     </div>
-                    <button class="btn-ad" id="watchAdBtn" onclick="startWatchingAd()">
-                        ▶️ Watch Ad (+1.00 ETB)
-                    </button>
-                </div>
-
-                <!-- QUICK ACTIONS CARD -->
-                <div class="card" style="display: flex; flex-direction: row; gap: 12px; justify-content: space-between;">
-                    <button class="btn-sm" style="flex: 1; padding: 14px;" onclick="switchTab('tasks')">🎯 Tasks (2 ETB)</button>
-                    <button class="btn-sm btn-sm-secondary" style="flex: 1; padding: 14px; margin-right: 0;" onclick="switchTab('invite')">👥 Invite (3 ETB)</button>
                 </div>
 
             </div>
@@ -557,10 +490,6 @@
             <div id="tab-wallet" class="tab-content">
                 <h3 style="font-size: 16px;">Withdrawal</h3>
                 <div class="card">
-                    <div style="background: #17243c; padding: 10px; border-radius: 8px; font-size: 12px; color: var(--text-gray);">
-                        📢 የክፍያ ማረጋገጫዎችን ለማየት፦ <a href="https://t.me/PlusTechHub" target="_blank" style="color: var(--accent-blue); font-weight: bold;">የክፍያ ማረጋገጫ (Proof Channel)</a> ተቀላቀሉ!
-                    </div>
-
                     <div class="input-group">
                         <label>የክፍያ ዘዴ</label>
                         <select id="withdrawMethod">
@@ -576,7 +505,7 @@
                         <label>የብር መጠን (ዝቅተኛው 60 ETB)</label>
                         <input type="number" id="withdrawAmount" placeholder="60">
                     </div>
-                    <button class="btn-checkin" style="background: linear-gradient(135deg, #0088cc, #24a1de); color: white; border: none; border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%;" onclick="submitWithdraw()">ብር አውጣ</button>
+                    <button class="btn-sm" style="background: linear-gradient(135deg, #0088cc, #24a1de); color: white; padding: 14px; font-size: 15px; font-weight: 700; width: 100%; border-radius: 12px;" onclick="submitWithdraw()">ብር አውጣ</button>
                     <div id="withdrawMsg" style="font-size: 12px; text-align: center; margin-top: 4px;"></div>
                 </div>
 
@@ -592,8 +521,23 @@
 
             <!-- ADMIN PANEL TAB -->
             <div id="tab-admin" class="tab-content">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="font-size: 16px;">👑 Admin Requests</h3>
+                <!-- የብር መላኪያ ሳጥን (Send Balance to User) -->
+                <div class="card" style="border: 1px solid var(--accent-blue);">
+                    <h3 style="font-size: 15px; color: var(--accent-blue);">💰 ለተጠቃሚ ብር መሙያ (Send Balance)</h3>
+                    <div class="input-group">
+                        <label>የተጠቃሚው Telegram ID</label>
+                        <input type="text" id="adminTargetId" placeholder="ለምሳሌ: 123456789">
+                    </div>
+                    <div class="input-group">
+                        <label>የብር መጠን (ETB)</label>
+                        <input type="number" id="adminAddAmount" placeholder="ለምሳሌ: 100">
+                    </div>
+                    <button class="btn-sm" style="background: #24a1de; padding: 12px;" onclick="adminSendBalance()">➕ ብር ላክ / ጨምር</button>
+                    <div id="adminSendMsg" style="font-size: 12px; text-align: center;"></div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <h3 style="font-size: 16px;">👑 Withdrawal Requests</h3>
                     <button class="btn-sm btn-sm-secondary" onclick="loadAdminRequests()">🔄 አድስ</button>
                 </div>
                 <div id="requestsList" style="display: flex; flex-direction: column; gap: 10px;">
@@ -603,14 +547,6 @@
 
         </div>
 
-    </div>
-
-    <!-- AD WATCHING MODAL -->
-    <div id="adModal">
-        <div style="font-size: 20px; font-weight: 800;">📺 Watching Sponsored Ad</div>
-        <div style="font-size: 13px; color: var(--text-gray); margin-top: 6px;">ብርዎን ለመቀበል ቆጣሪው እስኪያልቅ ይጠብቁ...</div>
-        <div class="ad-timer-box" id="adTimerBox">10s</div>
-        <div style="font-size: 11px; color: #f59e0b;">ማስታወቂያውን ሳያቋርጡ ይቆዩ!</div>
     </div>
 
     <!-- Bottom Navigation -->
@@ -663,7 +599,6 @@
         }
 
         let currentBalance = 0.0;
-        let adsLeft = 10;
         let completedTasks = [];
 
         if (currentUserId === ADMIN_ID) {
@@ -673,19 +608,6 @@
         const isLocallyVerified = localStorage.getItem(`verified_${currentUserId}`) === "true";
         if (isLocallyVerified) {
             unlockApp();
-        }
-
-        function getStoredHistory() {
-            try { return JSON.parse(localStorage.getItem(`hist_${currentUserId}`) || '[]'); } catch(e) { return []; }
-        }
-        function setStoredHistory(list) {
-            localStorage.setItem(`hist_${currentUserId}`, JSON.stringify(list));
-        }
-        function getStoredAdminReqs() {
-            try { return JSON.parse(localStorage.getItem('admin_requests_backup') || '[]'); } catch(e) { return []; }
-        }
-        function setStoredAdminReqs(list) {
-            localStorage.setItem('admin_requests_backup', JSON.stringify(list));
         }
 
         function openChannel(url) {
@@ -764,25 +686,12 @@
                     }
                     currentBalance = data.balance || 0;
                     const invites = data.invites || 0;
-                    adsLeft = data.ads_remaining !== undefined ? data.ads_remaining : 10;
                     completedTasks = data.completed_tasks || [];
 
                     document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                    document.getElementById('adsRemainingText').innerText = adsLeft;
-
-                    const adBtn = document.getElementById('watchAdBtn');
-                    if (adsLeft <= 0) {
-                        adBtn.disabled = true;
-                        adBtn.innerText = "Limit Reached Today (0/10)";
-                    } else {
-                        adBtn.disabled = false;
-                        adBtn.innerText = "▶️ Watch Ad (+1.00 ETB)";
-                    }
-
                     document.getElementById('invite-count').innerText = invites;
                     document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
 
-                    // ታስኮች
                     if (completedTasks.includes('task_money_power')) {
                         const b1 = document.getElementById('btn-task-money');
                         b1.disabled = true;
@@ -818,7 +727,7 @@
                     btn.style.background = "#172338";
                     alert(`🎉 እንኳን ደስ አለዎት! ቻናሉን ስለተቀላቀሉ +${data.reward}.00 ETB ወደ ሂሳብዎ ገብቷል!`);
                 } else {
-                    alert(data.message || "እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ!");
+                    alert(data.message || "ቻናሉን አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ።");
                     btn.innerText = "2. Check";
                     btn.disabled = false;
                 }
@@ -828,57 +737,6 @@
                 btn.innerText = "2. Check";
                 btn.disabled = false;
             });
-        }
-
-        function startWatchingAd() {
-            if (adsLeft <= 0) {
-                alert("የዛሬውን 10 ማስታወቂያ አይተው ጨርሰዋል! ነገ ከሌሊቱ 6:00 በኋላ ይመለሱ።");
-                return;
-            }
-
-            const modal = document.getElementById('adModal');
-            const timerBox = document.getElementById('adTimerBox');
-            modal.style.display = "flex";
-
-            let seconds = 10;
-            timerBox.innerText = seconds + "s";
-
-            const timer = setInterval(() => {
-                seconds--;
-                timerBox.innerText = seconds + "s";
-                if (seconds <= 0) {
-                    clearInterval(timer);
-                    modal.style.display = "none";
-                    claimAdReward();
-                }
-            }, 1000);
-        }
-
-        function claimAdReward() {
-            fetch(`${API_BASE}/api/watch_ad`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: currentUserId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    currentBalance = data.balance;
-                    adsLeft = data.ads_remaining;
-                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                    document.getElementById('adsRemainingText').innerText = adsLeft;
-                    alert("🎉 እንኳን ደስ አለዎት! ማስታወቂያ በማየት +1.00 ETB አግኝተዋል!");
-
-                    if (adsLeft <= 0) {
-                        const adBtn = document.getElementById('watchAdBtn');
-                        adBtn.disabled = true;
-                        adBtn.innerText = "Limit Reached Today (0/10)";
-                    }
-                } else {
-                    alert(data.message || "ስህተት ተፈጥሯል!");
-                }
-            })
-            .catch(() => alert("የኔትወርክ ስህተት ተፈጥሯል!"));
         }
 
         function copyReferralLink() {
@@ -895,33 +753,21 @@
         }
 
         function shareInvite() {
-            const shareText = `🎁 ማስታወቂያ እያዩ (+1.00 ETB)፣ ታስኮችን እየሰሩ እና ሰዎችን በመጋበዝ (3 ETB) በቀላሉ በቴሌብር ገንዘብ ያግኙ!\n\n👇 አሁኑኑ ሚኒ አፑን ይክፈቱ፦`;
+            const shareText = `🎁 ታስኮችን እየሰሩ እና ሰዎችን በመጋበዝ (3 ETB) በቀላሉ በቴሌብር ገንዘብ ያግኙ!\n\n👇 አሁኑኑ ሚኒ አፑን ይክፈቱ፦`;
             const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(myReferralUrl)}&text=${encodeURIComponent(shareText)}`;
             tg.openTelegramLink(shareUrl);
         }
 
+        // ቋሚ የዊዝድሮው ታሪክ ማሳያ
         function renderHistory() {
             const listDiv = document.getElementById('userHistoryList');
-            let localList = getStoredHistory();
-
             fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
                 .then(res => res.json())
                 .then(serverHistory => {
-                    if (Array.isArray(serverHistory) && serverHistory.length > 0) {
-                        serverHistory.forEach(sItem => {
-                            const idx = localList.findIndex(l => String(l.id) === String(sItem.id));
-                            if (idx !== -1) {
-                                localList[idx].status = sItem.status;
-                            } else {
-                                localList.push(sItem);
-                            }
-                        });
-                        setStoredHistory(localList);
-                    }
-                    displayHistoryItems(localList);
+                    displayHistoryItems(serverHistory);
                 })
                 .catch(() => {
-                    displayHistoryItems(localList);
+                    listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 12px; padding: 12px;">ታሪክ መጫን አልተቻለም።</div>`;
                 });
         }
 
@@ -991,23 +837,7 @@
                     document.getElementById('balance').innerText = data.balance.toFixed(2);
                     document.getElementById('withdrawAmount').value = "";
                     document.getElementById('withdrawPhone').value = "";
-
-                    const localList = getStoredHistory();
-                    const newEntry = data.request || {
-                        id: Date.now(),
-                        amount: amount,
-                        phone: phone,
-                        method: method,
-                        status: "Pending"
-                    };
-                    localList.push(newEntry);
-                    setStoredHistory(localList);
-
-                    const adminBack = getStoredAdminReqs();
-                    adminBack.push(newEntry);
-                    setStoredAdminReqs(adminBack);
-
-                    displayHistoryItems(localList);
+                    renderHistory();
                 } else {
                     msgBox.style.color = "#da3633";
                     msgBox.innerText = data.message || "ስህተት ተፈጥሯል!";
@@ -1021,26 +851,13 @@
 
         function loadAdminRequests() {
             const listDiv = document.getElementById('requestsList');
-            let localAdmin = getStoredAdminReqs();
-
             fetch(`${API_BASE}/api/admin/requests`)
                 .then(res => res.json())
                 .then(serverReqs => {
-                    if (Array.isArray(serverReqs) && serverReqs.length > 0) {
-                        serverReqs.forEach(s => {
-                            const idx = localAdmin.findIndex(l => String(l.id) === String(s.id));
-                            if (idx !== -1) {
-                                localAdmin[idx].status = s.status;
-                            } else {
-                                localAdmin.push(s);
-                            }
-                        });
-                        setStoredAdminReqs(localAdmin);
-                    }
-                    displayAdminItems(localAdmin);
+                    displayAdminItems(serverReqs);
                 })
                 .catch(() => {
-                    displayAdminItems(localAdmin);
+                    listDiv.innerHTML = `<div style="text-align: center; color: var(--text-gray); font-size: 13px; padding: 20px;">ጥያቄዎችን መጫን አልተቻለም።</div>`;
                 });
         }
 
@@ -1076,25 +893,56 @@
         }
 
         function approveReq(id) {
-            const localAdmin = getStoredAdminReqs();
-            const target = localAdmin.find(l => String(l.id) === String(id));
-            if (target) {
-                target.status = "Success";
-                setStoredAdminReqs(localAdmin);
-                displayAdminItems(localAdmin);
-            }
-
-            const localHist = getStoredHistory();
-            const histTarget = localHist.find(l => String(l.id) === String(id));
-            if (histTarget) {
-                histTarget.status = "Success";
-                setStoredHistory(localHist);
-            }
-
             fetch(`${API_BASE}/api/admin/approve`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ req_id: id })
+            })
+            .then(res => res.json())
+            .then(() => {
+                loadAdminRequests();
+            });
+        }
+
+        // አድሚን ለተጠቃሚ ብር መላኪያ ተግባር
+        function adminSendBalance() {
+            const targetId = document.getElementById('adminTargetId').value.trim();
+            const amount = parseFloat(document.getElementById('adminAddAmount').value);
+            const msgBox = document.getElementById('adminSendMsg');
+
+            if (!targetId || !amount || amount <= 0) {
+                msgBox.style.color = "#da3633";
+                msgBox.innerText = "እባክዎ ትክክለኛ ID እና የብር መጠን ያስገቡ!";
+                return;
+            }
+
+            msgBox.style.color = "#8fa0bc";
+            msgBox.innerText = "በመላክ ላይ...";
+
+            fetch(`${API_BASE}/api/admin/add_balance`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    admin_id: currentUserId,
+                    target_id: targetId,
+                    amount: amount
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    msgBox.style.color = "#24a1de";
+                    msgBox.innerText = `ተልኳል! የአካውንቱ አዲስ ቀሪ ሂሳብ፦ ${data.new_balance} ETB`;
+                    document.getElementById('adminTargetId').value = "";
+                    document.getElementById('adminAddAmount').value = "";
+                } else {
+                    msgBox.style.color = "#da3633";
+                    msgBox.innerText = data.message || "መላክ አልተቻለም!";
+                }
+            })
+            .catch(() => {
+                msgBox.style.color = "#da3633";
+                msgBox.innerText = "የኔትወርክ ስህተት ተፈጥሯል!";
             });
         }
 
