@@ -396,7 +396,7 @@
                     <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
                 </div>
 
-                <!-- EARN MENU -->
+                <!-- EARN OPTIONS -->
                 <div class="card">
                     <h3 style="font-size: 15px;">Ways to Earn Money</h3>
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
@@ -521,7 +521,6 @@
 
             <!-- ADMIN PANEL TAB -->
             <div id="tab-admin" class="tab-content">
-                <!-- የብር መላኪያ ሳጥን (Send Balance to User) -->
                 <div class="card" style="border: 1px solid var(--accent-blue);">
                     <h3 style="font-size: 15px; color: var(--accent-blue);">💰 ለተጠቃሚ ብር መሙያ (Send Balance)</h3>
                     <div class="input-group">
@@ -581,8 +580,14 @@
         const ADMIN_ID = "8556328355";
         const BOT_USERNAME = "Plus_appbot";
         
-        const user = tg.initDataUnsafe?.user || { id: "test_user", first_name: "User" };
-        const currentUserId = String(user.id).trim();
+        // የተጠቃሚ ID ማግኘት
+        let currentUserId = "";
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+            currentUserId = String(tg.initDataUnsafe.user.id).trim();
+        } else {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentUserId = (urlParams.get('user_id') || urlParams.get('id') || "").trim();
+        }
 
         const myReferralUrl = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
         document.getElementById('refLinkInput').value = myReferralUrl;
@@ -617,6 +622,12 @@
         function doVerifyGate() {
             const btn = document.getElementById('verifyBtnMain');
             const msg = document.getElementById('gateMsg');
+
+            if (!currentUserId || !/^\d+$/.test(currentUserId)) {
+                msg.innerText = "የእርስዎን የቴሌግራም መለያ ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ውስጥ ይክፈቱት!";
+                return;
+            }
+
             btn.innerText = "በማረጋገጥ ላይ...";
             btn.disabled = true;
             msg.innerText = "";
@@ -678,6 +689,7 @@
         }
 
         function fetchUserData() {
+            if (!currentUserId || !/^\d+$/.test(currentUserId)) return;
             fetch(`${API_BASE}/api/user?id=${currentUserId}`)
                 .then(res => res.json())
                 .then(data => {
@@ -710,6 +722,12 @@
 
         function doVerifyTask(taskId, btnId) {
             const btn = document.getElementById(btnId);
+
+            if (!currentUserId || !/^\d+$/.test(currentUserId)) {
+                alert("የእርስዎን የቴሌግራም መለያ ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ቦትዎ ውስጥ ይክፈቱት!");
+                return;
+            }
+
             btn.innerText = "...";
             btn.disabled = true;
 
@@ -758,9 +776,10 @@
             tg.openTelegramLink(shareUrl);
         }
 
-        // ቋሚ የዊዝድሮው ታሪክ ማሳያ
         function renderHistory() {
             const listDiv = document.getElementById('userHistoryList');
+            if (!currentUserId || !/^\d+$/.test(currentUserId)) return;
+
             fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
                 .then(res => res.json())
                 .then(serverHistory => {
@@ -904,7 +923,6 @@
             });
         }
 
-        // አድሚን ለተጠቃሚ ብር መላኪያ ተግባር
         function adminSendBalance() {
             const targetId = document.getElementById('adminTargetId').value.trim();
             const amount = parseFloat(document.getElementById('adminAddAmount').value);
