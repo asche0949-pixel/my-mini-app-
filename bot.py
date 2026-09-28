@@ -37,12 +37,10 @@ def save_data(data):
     except Exception as e:
         print(f"Error saving data: {e}")
 
-# መልቲ አካውንት፦ በስልኩ መለያ (Device ID) ተጠቃሚውን ማግኘት
 def get_or_create_user(db, user_id, device_id=""):
     str_id = str(user_id).strip()
     dev_id = str(device_id).strip() if device_id else str_id
 
-    # ስልኩ ከዚህ ቀደም በሌላ አካውንት ገብቶ ከሆነ ዋናውን አካውንት መፈለግ
     if "device_map" not in db:
         db["device_map"] = {}
 
@@ -80,7 +78,7 @@ def send_telegram_message(chat_id, text, reply_markup=None):
 def check_member(channel, user_id):
     str_id = str(user_id).strip()
     if not str_id.isdigit():
-        return False
+        return True  # ID ቁጥር ማግኘት ካልቻለ ተጠቃሚው እንዳይታገድ ፈቅዶ ማሳለፍ
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
     try:
@@ -88,9 +86,10 @@ def check_member(channel, user_id):
         if res.get("ok"):
             status = res.get("result", {}).get("status", "")
             return status in ["member", "administrator", "creator", "restricted"]
-        return False
+        # ቦቱ አድሚን ካልሆነም ቢሆን ተጠቃሚው እንዳይታገድ ማለፍ
+        return True
     except Exception:
-        return False
+        return True
 
 @app.route("/")
 def index():
@@ -116,13 +115,6 @@ def verify_membership():
     device_id = str(data.get("device_id", "")).strip()
     referrer_id = str(data.get("referrer_id", "")).strip()
 
-    if not user_id.isdigit():
-        return jsonify({
-            "status": "error",
-            "message": "የቴሌግራም መለያ ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ውስጥ ይክፈቱት!",
-            "verified": False
-        }), 400
-
     db = load_data()
     primary_id, user_data = get_or_create_user(db, user_id, device_id)
 
@@ -138,7 +130,7 @@ def verify_membership():
             "verified": False
         })
 
-    # መልቲ አካውንት ማጭበርበርን መከላከል፦ ስልኩ ከዚህ በፊት ካልተጋበዘ ብቻ 3 ETB መስጠት
+    # ሪፈራል 3 ETB መጨመር
     dev_key = device_id if device_id else primary_id
     if "invited_devices" not in db:
         db["invited_devices"] = []
@@ -169,9 +161,6 @@ def verify_task():
     user_id = str(data.get("user_id", "")).strip()
     device_id = str(data.get("device_id", "")).strip()
     task_id = data.get("task_id")
-
-    if not user_id.isdigit():
-        return jsonify({"status": "error", "message": "የቴሌግራም መለያ ማግኘት አልተቻለም።"}), 400
 
     if task_id not in TASK_CHANNELS:
         return jsonify({"status": "error", "message": "የማይታወቅ ታስክ!"}), 400
