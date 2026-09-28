@@ -61,15 +61,25 @@ def send_telegram_message(chat_id, text, reply_markup=None):
     except Exception as e:
         print(f"Send error: {e}")
 
+# አባልነትን በትክክል የሚያረጋግጥ ፈንክሽን
 def check_member(channel, user_id):
+    str_id = str(user_id).strip()
+    if not str_id.isdigit():
+        print(f"Invalid user_id (not digits): {str_id}")
+        return False
+
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
     try:
-        res = requests.get(url, params={"chat_id": channel, "user_id": user_id}, timeout=6).json()
+        res = requests.get(url, params={"chat_id": channel, "user_id": int(str_id)}, timeout=6).json()
+        print(f"Checking {channel} for {str_id}: {res}")
         if res.get("ok"):
             status = res.get("result", {}).get("status", "")
             return status in ["member", "administrator", "creator", "restricted"]
-        return False
-    except Exception:
+        else:
+            print(f"Telegram error on {channel}: {res.get('description')}")
+            return False
+    except Exception as e:
+        print(f"Connection exception on {channel}: {e}")
         return False
 
 @app.route("/")
@@ -87,8 +97,15 @@ def get_user():
 @app.route("/api/verify_membership", methods=["POST"])
 def verify_membership():
     data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID)).strip()
+    user_id = str(data.get("user_id", "")).strip()
     referrer_id = str(data.get("referrer_id", "")).strip()
+
+    if not user_id.isdigit():
+        return jsonify({
+            "status": "error",
+            "message": "የቴሌግራም መለያ ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ውስጥ ይክፈቱት!",
+            "verified": False
+        }), 400
 
     db = load_data()
     user_data = get_or_create_user(db, user_id)
@@ -105,6 +122,7 @@ def verify_membership():
             "verified": False
         })
 
+    # አዲስ ሰው ከሆነ ለጋባዡ 3 ETB መጨመር
     if referrer_id and referrer_id != user_id and user_id not in db["invited_users"]:
         db["invited_users"].append(user_id)
         ref_user = get_or_create_user(db, referrer_id)
@@ -125,11 +143,15 @@ def verify_membership():
 
     return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
 
+# ታስኮችን ማረጋገጫ (ከተቀላቀለ 2 ETB መስጠት፤ ካልተቀላቀለ መከልከል)
 @app.route("/api/task/verify", methods=["POST"])
 def verify_task():
     data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID)).strip()
+    user_id = str(data.get("user_id", "")).strip()
     task_id = data.get("task_id")
+
+    if not user_id.isdigit():
+        return jsonify({"status": "error", "message": "የቴሌግራም መለያ ማግኘት አልተቻለም።"}), 400
 
     if task_id not in TASK_CHANNELS:
         return jsonify({"status": "error", "message": "የማይታወቅ ታስክ!"}), 400
@@ -142,7 +164,7 @@ def verify_task():
 
     task_info = TASK_CHANNELS[task_id]
     if not check_member(task_info["channel"], user_id):
-        return jsonify({"status": "not_joined", "message": "አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ።"}), 400
+        return jsonify({"status": "not_joined", "message": "ቻናሉን አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ።"}), 400
 
     reward = task_info["reward"]
     user_data["balance"] += reward
@@ -227,7 +249,7 @@ def approve_request():
             break
     return jsonify({"status": "success"})
 
-# አድሚኑ በቀጥታ ለተጠቃሚ ብር መሙያ (Add/Send Balance)
+# አድሚን ለተጠቃሚ ብር መሙያ
 @app.route("/api/admin/add_balance", methods=["POST"])
 def add_balance():
     data = request.json or {}
@@ -239,7 +261,7 @@ def add_balance():
         return jsonify({"status": "error", "message": "ያልተፈቀደ አሰራር!"}), 403
 
     if not target_id or amount <= 0:
-        return jsonify({"status": "error", "message": "እባክዎ ትክክለኛ የተጠቃሚ ID እና የብር መጠን ያስገቡ!"}), 400
+        return jsonify({"status": "error", "message": "እባክዎ ትክክለኛ ID እና መጠን ያስገቡ!"}), 400
 
     db = load_data()
     target_user = get_or_create_user(db, target_id)
