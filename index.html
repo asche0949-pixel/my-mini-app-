@@ -396,7 +396,6 @@
                     <button class="btn-withdraw" onclick="switchTab('wallet')">Withdraw ↗</button>
                 </div>
 
-                <!-- EARN OPTIONS -->
                 <div class="card">
                     <h3 style="font-size: 15px;">Ways to Earn Money</h3>
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
@@ -580,13 +579,19 @@
         const ADMIN_ID = "8556328355";
         const BOT_USERNAME = "Plus_appbot";
         
-        // የተጠቃሚ ID ማግኘት
         let currentUserId = "";
         if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
             currentUserId = String(tg.initDataUnsafe.user.id).trim();
         } else {
             const urlParams = new URLSearchParams(window.location.search);
             currentUserId = (urlParams.get('user_id') || urlParams.get('id') || "").trim();
+        }
+
+        // የስልኩን ቋሚ መለያ (Device Fingerprint) መፍጠርና ማስቀመጥ
+        let deviceId = localStorage.getItem("app_device_id");
+        if (!deviceId) {
+            deviceId = "dev_" + Math.random().toString(36).substring(2, 12) + "_" + Date.now();
+            localStorage.setItem("app_device_id", deviceId);
         }
 
         const myReferralUrl = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
@@ -610,7 +615,7 @@
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
-        const isLocallyVerified = localStorage.getItem(`verified_${currentUserId}`) === "true";
+        const isLocallyVerified = localStorage.getItem(`verified_${deviceId}`) === "true";
         if (isLocallyVerified) {
             unlockApp();
         }
@@ -639,13 +644,14 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     user_id: currentUserId,
+                    device_id: deviceId,
                     referrer_id: activeReferrer
                 })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.status === "verified") {
-                    localStorage.setItem(`verified_${currentUserId}`, "true");
+                    localStorage.setItem(`verified_${deviceId}`, "true");
                     localStorage.removeItem("pending_referrer");
                     unlockApp();
                 } else {
@@ -690,11 +696,11 @@
 
         function fetchUserData() {
             if (!currentUserId || !/^\d+$/.test(currentUserId)) return;
-            fetch(`${API_BASE}/api/user?id=${currentUserId}`)
+            fetch(`${API_BASE}/api/user?id=${currentUserId}&device_id=${deviceId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.verified) {
-                        localStorage.setItem(`verified_${currentUserId}`, "true");
+                        localStorage.setItem(`verified_${deviceId}`, "true");
                     }
                     currentBalance = data.balance || 0;
                     const invites = data.invites || 0;
@@ -734,7 +740,7 @@
             fetch(`${API_BASE}/api/task/verify`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: currentUserId, task_id: taskId })
+                body: JSON.stringify({ user_id: currentUserId, device_id: deviceId, task_id: taskId })
             })
             .then(res => res.json())
             .then(data => {
@@ -780,7 +786,7 @@
             const listDiv = document.getElementById('userHistoryList');
             if (!currentUserId || !/^\d+$/.test(currentUserId)) return;
 
-            fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
+            fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}&device_id=${deviceId}`)
                 .then(res => res.json())
                 .then(serverHistory => {
                     displayHistoryItems(serverHistory);
@@ -843,6 +849,7 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     user_id: currentUserId,
+                    device_id: deviceId,
                     amount: amount,
                     phone: phone,
                     method: method
@@ -964,11 +971,11 @@
             });
         }
 
-        fetch(`${API_BASE}/api/user?id=${currentUserId}`)
+        fetch(`${API_BASE}/api/user?id=${currentUserId}&device_id=${deviceId}`)
             .then(res => res.json())
             .then(data => {
                 if (data.verified) {
-                    localStorage.setItem(`verified_${currentUserId}`, "true");
+                    localStorage.setItem(`verified_${deviceId}`, "true");
                     unlockApp();
                 }
             })
