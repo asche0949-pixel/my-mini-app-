@@ -579,7 +579,6 @@
         const ADMIN_ID = "8556328355";
         const BOT_USERNAME = "Plus_appbot";
         
-        // ቴሌግራም ID በአስተማማኝ ሁኔታ ማግኘት
         function getUserId() {
             if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
                 return String(tg.initDataUnsafe.user.id).trim();
@@ -590,7 +589,6 @@
 
         let currentUserId = getUserId();
 
-        // የስልክ መለያ
         let deviceId = localStorage.getItem("app_device_id");
         if (!deviceId) {
             deviceId = "dev_" + Math.random().toString(36).substring(2, 12) + "_" + Date.now();
@@ -618,6 +616,7 @@
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
+        // የስልኩ ማረጋገጫ (መልቲ አካውንት ድጋፍ)
         const isLocallyVerified = localStorage.getItem(`verified_${deviceId}`) === "true";
         if (isLocallyVerified) {
             unlockApp();
@@ -632,6 +631,11 @@
             const msg = document.getElementById('gateMsg');
 
             currentUserId = getUserId();
+            if (!currentUserId || !/^\d+$/.test(currentUserId)) {
+                msg.innerText = "እባክዎ አፑን ከቴሌግራም ቦት ውስጥ ይክፈቱት!";
+                return;
+            }
+
             btn.innerText = "በማረጋገጥ ላይ...";
             btn.disabled = true;
             msg.innerText = "";
@@ -642,7 +646,7 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    user_id: currentUserId || ADMIN_ID,
+                    user_id: currentUserId,
                     device_id: deviceId,
                     referrer_id: activeReferrer
                 })
@@ -660,9 +664,9 @@
                 }
             })
             .catch(() => {
-                // የኔትወርክ መዘግየት ቢያጋጥምም ተጠቃሚውን አሳልፎ መክፈት
-                localStorage.setItem(`verified_${deviceId}`, "true");
-                unlockApp();
+                msg.innerText = "የኔትወርክ ስህተት ተፈጥሯል፤ እባክዎ እንደገና ይሞክሩ።";
+                btn.innerText = "✓ Verify Membership";
+                btn.disabled = false;
             });
         }
 
@@ -728,6 +732,11 @@
         function doVerifyTask(taskId, btnId) {
             const btn = document.getElementById(btnId);
             currentUserId = getUserId() || ADMIN_ID;
+
+            if (!currentUserId || !/^\d+$/.test(currentUserId)) {
+                alert("የእርስዎን የቴሌግራም መለያ ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ቦትዎ ውስጥ ይክፈቱት!");
+                return;
+            }
 
             btn.innerText = "...";
             btn.disabled = true;
