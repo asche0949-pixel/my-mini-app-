@@ -37,6 +37,7 @@ def save_data(data):
     except Exception as e:
         print(f"Error saving data: {e}")
 
+# መልቲ አካውንት ማስተናገጃ
 def get_or_create_user(db, user_id, device_id=""):
     str_id = str(user_id).strip()
     dev_id = str(device_id).strip() if device_id else str_id
@@ -44,6 +45,7 @@ def get_or_create_user(db, user_id, device_id=""):
     if "device_map" not in db:
         db["device_map"] = {}
 
+    # ስልኩ ከዚህ ቀደም በሌላ አካውንት ከገባ ያንኑ የቀድሞውን አካውንት ያመጣል
     primary_id = db["device_map"].get(dev_id, str_id)
     db["device_map"][dev_id] = primary_id
 
@@ -75,10 +77,11 @@ def send_telegram_message(chat_id, text, reply_markup=None):
     except Exception as e:
         print(f"Send error: {e}")
 
+# ቻናሉን በትክክል መቀላቀሉን የሚያረጋግጥ (ካልተቀላቀለ በፍጹም አያልፍም)
 def check_member(channel, user_id):
     str_id = str(user_id).strip()
     if not str_id.isdigit():
-        return True  # ID ቁጥር ማግኘት ካልቻለ ተጠቃሚው እንዳይታገድ ፈቅዶ ማሳለፍ
+        return False
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
     try:
@@ -86,10 +89,10 @@ def check_member(channel, user_id):
         if res.get("ok"):
             status = res.get("result", {}).get("status", "")
             return status in ["member", "administrator", "creator", "restricted"]
-        # ቦቱ አድሚን ካልሆነም ቢሆን ተጠቃሚው እንዳይታገድ ማለፍ
-        return True
-    except Exception:
-        return True
+        return False
+    except Exception as e:
+        print(f"Error checking {channel}: {e}")
+        return False
 
 @app.route("/")
 def index():
@@ -115,8 +118,12 @@ def verify_membership():
     device_id = str(data.get("device_id", "")).strip()
     referrer_id = str(data.get("referrer_id", "")).strip()
 
-    db = load_data()
-    primary_id, user_data = get_or_create_user(db, user_id, device_id)
+    if not user_id.isdigit():
+        return jsonify({
+            "status": "error",
+            "message": "የቴሌግራም መለያ ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ቦት ውስጥ ይክፈቱት!",
+            "verified": False
+        }), 400
 
     missing = []
     for ch in GATE_CHANNELS:
@@ -126,11 +133,14 @@ def verify_membership():
     if missing:
         return jsonify({
             "status": "not_joined",
-            "message": f"አልተቀላቀሉም! እባክዎ መጀመሪያ የቀሩትን ቻናሎች ይቀላቀሉ፦ {', '.join(missing)}",
+            "message": f"ቻናሉን አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሎቹን ይቀላቀሉ፦ {', '.join(missing)}",
             "verified": False
-        })
+        }), 400
 
-    # ሪፈራል 3 ETB መጨመር
+    db = load_data()
+    primary_id, user_data = get_or_create_user(db, user_id, device_id)
+
+    # ሪፈራል 3 ETB መጨመር (ተመሳሳይ ስልክ ራሱን እንዳይጋብዝ መከልከል)
     dev_key = device_id if device_id else primary_id
     if "invited_devices" not in db:
         db["invited_devices"] = []
@@ -155,12 +165,16 @@ def verify_membership():
 
     return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
 
+# የታስክ ማረጋገጫ (ካልተቀላቀለ በፍጹም 2 ETB አይሰጥም)
 @app.route("/api/task/verify", methods=["POST"])
 def verify_task():
     data = request.json or {}
     user_id = str(data.get("user_id", "")).strip()
     device_id = str(data.get("device_id", "")).strip()
     task_id = data.get("task_id")
+
+    if not user_id.isdigit():
+        return jsonify({"status": "error", "message": "የቴሌግራም መለያ ማግኘት አልተቻለም።"}), 400
 
     if task_id not in TASK_CHANNELS:
         return jsonify({"status": "error", "message": "የማይታወቅ ታስክ!"}), 400
