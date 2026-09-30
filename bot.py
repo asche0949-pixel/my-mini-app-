@@ -65,7 +65,6 @@ def send_telegram_message(chat_id, text, reply_markup=None):
     except Exception as e:
         print(f"Send error: {e}")
 
-# አባልነትን የማረጋገጥ ስራ (ችግር ቢያጋጥም ተጠቃሚውን እንዳያስቸግር አድርጎ ማሳለፍ)
 def check_member(channel, user_id):
     str_id = str(user_id).strip()
     if not str_id.isdigit():
@@ -85,18 +84,32 @@ def check_member(channel, user_id):
 def index():
     return "Plus App Backend is live and running!"
 
-@app.route("/api/user", methods=["GET"])
-def get_user():
-    user_id = str(request.args.get("id", "")).strip()
-    if not user_id:
-        return jsonify({"balance": 0.0, "invites": 0, "verified": False, "completed_tasks": []})
-
+# የተጠቃሚውን ዳታ ማምጣት እና ቋሚ Sync ማድረግ (ሰርቨሩ ቢተኛም ብሩ እንዳይጠፋ)
+@app.route("/api/user", methods=["GET", "POST"])
+def get_or_sync_user():
     db = load_data()
-    user_data = get_or_create_user(db, user_id)
-    save_data(db)
-    return jsonify(user_data)
 
-# መግቢያ ማረጋገጫ (ልክ እንደ ድሮው ተቀላቅለው Verify ሲሉ በቀላሉ የሚያሳልፍ)
+    if request.method == "POST":
+        data = request.json or {}
+        user_id = str(data.get("id", "")).strip()
+        local_bal = float(data.get("balance", 0.0))
+        local_tasks = data.get("completed_tasks", [])
+        
+        user_data = get_or_create_user(db, user_id)
+        # ሰርቨሩ ተኝቶ ተነስቶ ብሩ ቢጠፋ ከስልኩ ማስታወሻ መልሶ መሙላት
+        if local_bal > user_data["balance"]:
+            user_data["balance"] = local_bal
+        for t in local_tasks:
+            if t not in user_data["completed_tasks"]:
+                user_data["completed_tasks"].append(t)
+        save_data(db)
+        return jsonify(user_data)
+    else:
+        user_id = str(request.args.get("id", "")).strip()
+        user_data = get_or_create_user(db, user_id)
+        save_data(db)
+        return jsonify(user_data)
+
 @app.route("/api/verify_membership", methods=["POST"])
 def verify_membership():
     data = request.json or {}
@@ -106,7 +119,6 @@ def verify_membership():
     db = load_data()
     user_data = get_or_create_user(db, user_id)
 
-    # ሪፈራል 3 ETB መጨመር
     if referrer_id and referrer_id.isdigit() and referrer_id != user_id and user_id not in db["invited_users"]:
         db["invited_users"].append(user_id)
         ref_user = get_or_create_user(db, referrer_id)
@@ -127,7 +139,7 @@ def verify_membership():
 
     return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
 
-# ታስክ ክሌም ማድረጊያ (ተጠቃሚው ተቀላቅሎ Claim ሲል 2 ETB ወዲያው መስጠት)
+# ታስክ ክሌም ማድረጊያ (አንዴ ብቻ እንዲሰራ ማድረግ)
 @app.route("/api/task/verify", methods=["POST"])
 def verify_task():
     data = request.json or {}
@@ -141,7 +153,7 @@ def verify_task():
     user_data = get_or_create_user(db, user_id)
 
     if task_id in user_data.get("completed_tasks", []):
-        return jsonify({"status": "error", "message": "ይህንን ታስክ አስቀድመው ክሌም አድርገዋል!"}), 400
+        return jsonify({"status": "error", "message": "ይህንን ታስክ አስቀድመው ወስደዋል! ዳግመኛ መውሰድ አይቻልም።"}), 400
 
     reward = TASK_CHANNELS[task_id]["reward"]
     user_data["balance"] += reward
@@ -226,7 +238,6 @@ def approve_request():
             break
     return jsonify({"status": "success"})
 
-# ለአድሚን ለተጠቃሚው ብቻ ብር መሙያ
 @app.route("/api/admin/add_balance", methods=["POST"])
 def add_balance():
     data = request.json or {}
