@@ -21,23 +21,6 @@ TASK_CHANNELS = {
     "task_tips_mickey": {"channel": "@Tipsmickey", "reward": 2.0}
 }
 
-# የቻናሎች መለያ ID መያዣ
-channel_ids_cache = {}
-
-def get_channel_chat_id(username):
-    if username in channel_ids_cache:
-        return channel_ids_cache[username]
-    try:
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChat"
-        res = requests.get(url, params={"chat_id": username}, timeout=5).json()
-        if res.get("ok"):
-            cid = res["result"]["id"]
-            channel_ids_cache[username] = cid
-            return cid
-    except Exception:
-        pass
-    return username
-
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
@@ -82,16 +65,15 @@ def send_telegram_message(chat_id, text, reply_markup=None):
     except Exception as e:
         print(f"Send error: {e}")
 
-# አባልነትን በ ID መፈተሽ
-def check_member(channel_username, user_id):
+# አባልነትን በቀጥታ ቴሌግራም ላይ ማረጋገጥ
+def check_member(channel, user_id):
     str_id = str(user_id).strip()
     if not str_id.isdigit():
         return False
 
-    chat_id = get_channel_chat_id(channel_username)
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
     try:
-        res = requests.get(url, params={"chat_id": chat_id, "user_id": int(str_id)}, timeout=5).json()
+        res = requests.get(url, params={"chat_id": channel, "user_id": int(str_id)}, timeout=5).json()
         if res.get("ok"):
             status = res.get("result", {}).get("status", "")
             return status in ["member", "administrator", "creator", "restricted"]
@@ -127,6 +109,7 @@ def get_or_sync_user():
         save_data(db)
         return jsonify(user_data)
 
+# ጥብቅ ማጣሪያ፦ አንዱም ቢቀር በፍጹም አያልፍም!
 @app.route("/api/verify_membership", methods=["POST"])
 def verify_membership():
     data = request.json or {}
@@ -136,7 +119,7 @@ def verify_membership():
     if not user_id.isdigit():
         return jsonify({
             "status": "not_joined",
-            "message": "የቴሌግራም መለያ ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ውስጥ ይክፈቱት!",
+            "message": "የቴሌግራም አካውንትዎን ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ቦት ውስጥ ይክፈቱት!",
             "verified": False
         }), 400
 
@@ -344,9 +327,7 @@ def bot_polling_loop():
                                     [{"text": "📢 ቻናል 3", "url": "https://t.me/Alphatech_earn"}]
                                 ]
                             }
-                            se
-                            
-                            nd_telegram_message(chat_id, welcome_text, keyboard)
+                            send_telegram_message(chat_id, welcome_text, keyboard)
         except Exception:
             time.sleep(2)
 
