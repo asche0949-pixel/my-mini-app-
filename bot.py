@@ -65,7 +65,7 @@ def send_telegram_message(chat_id, text, reply_markup=None):
     except Exception as e:
         print(f"Send error: {e}")
 
-# አባልነትን 100% አጥብቆ መፈተሽ (ካልገባ በፍጹም False ይመልሳል)
+# አባልነትን በትክክል መፈተሽ
 def check_member(channel, user_id):
     str_id = str(user_id).strip()
     if not str_id.isdigit():
@@ -73,7 +73,7 @@ def check_member(channel, user_id):
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
     try:
-        res = requests.get(url, params={"chat_id": channel, "user_id": int(str_id)}, timeout=6).json()
+        res = requests.get(url, params={"chat_id": channel, "user_id": int(str_id)}, timeout=5).json()
         if res.get("ok"):
             status = res.get("result", {}).get("status", "")
             return status in ["member", "administrator", "creator", "restricted"]
@@ -109,7 +109,7 @@ def get_or_sync_user():
         save_data(db)
         return jsonify(user_data)
 
-# ጥብቅ የቻናሎች ማረጋገጫ (አንዱም ቢቀር ይከለክላል)
+# የተጠቃሚውን ቻናሎች ጥብቅ በሆነ መልኩ ማረጋገጥ
 @app.route("/api/verify_membership", methods=["POST"])
 def verify_membership():
     data = request.json or {}
@@ -123,22 +123,26 @@ def verify_membership():
             "verified": False
         }), 400
 
+    # የቀሩትን ቻናሎች አንድ በአንድ መፈተሽ
     missing = []
     for ch in GATE_CHANNELS:
         if not check_member(ch, user_id):
             missing.append(ch)
 
-    # አንድም ቻናል ከቀረ ማስጠንቀቂያ ሰጥቶ መከልከል
+    # አንድም ቻናል ከቀረ ስሙን ጠቅሶ መከልከል
     if missing:
+        missing_text = ", ".join(missing)
         return jsonify({
             "status": "not_joined",
-            "message": f"አልተቀላቀሉም! እባክዎ መጀመሪያ የቀሩትን ቻናሎች ይቀላቀሉ፦ {', '.join(missing)}",
+            "message": f"አልተቀላቀሉም! እባክዎ የቀረዎትን ቻናል ይቀላቀሉ፦ {missing_text}",
+            "missing": missing,
             "verified": False
         }), 400
 
     db = load_data()
     user_data = get_or_create_user(db, user_id)
 
+    # ሪፈራል መጨመር
     if referrer_id and referrer_id.isdigit() and referrer_id != user_id and user_id not in db["invited_users"]:
         db["invited_users"].append(user_id)
         ref_user = get_or_create_user(db, referrer_id)
@@ -159,7 +163,7 @@ def verify_membership():
 
     return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
 
-# የታስክ ማረጋገጫ (ቻናሉን በትክክል ሳይቀላቀል በፍጹም አይሰጥም)
+# የታስክ ማረጋገጫ
 @app.route("/api/task/verify", methods=["POST"])
 def verify_task():
     data = request.json or {}
@@ -180,7 +184,7 @@ def verify_task():
 
     task_info = TASK_CHANNELS[task_id]
     if not check_member(task_info["channel"], user_id):
-        return jsonify({"status": "not_joined", "message": "ቻናሉን አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ።"}), 400
+        return jsonify({"status": "not_joined", "message": f"እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ፦ {task_info['channel']}"}), 400
 
     reward = task_info["reward"]
     user_data["balance"] += reward
