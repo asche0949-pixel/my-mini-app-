@@ -215,6 +215,17 @@
             margin-right: 6px;
         }
 
+        .btn-claim {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
         .input-group {
             display: flex;
             flex-direction: column;
@@ -414,7 +425,7 @@
 
             <!-- TASKS TAB -->
             <div id="tab-tasks" class="tab-content">
-                <h3 style="font-size: 16px;">🎯 Complete Tasks & Earn</h3>
+                <h3 style="font-size: 16px;">🎯 Complete Tasks & Claim Reward</h3>
                 
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -425,11 +436,11 @@
                                 <div style="font-size: 11px; color: var(--text-gray);">ቻናሉን ይቀላቀሉ (+2.00 ETB)</div>
                             </div>
                         </div>
-                        <span style="color: var(--accent-blue); font-weight: bold; font-size: 13px;">+2.00 ETB</span>
+                        <span style="color: #10b981; font-weight: bold; font-size: 13px;">+2.00 ETB</span>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 4px;">
                         <button class="btn-sm btn-sm-secondary" style="flex: 1;" onclick="openChannel('https://t.me/money_power54')">1. Join</button>
-                        <button class="btn-sm" style="flex: 1;" id="btn-task-money" onclick="doVerifyTask('task_money_power', 'btn-task-money')">2. Check</button>
+                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-money" onclick="doClaimTask('task_money_power', 'btn-task-money')">🎁 Claim 2 ETB</button>
                     </div>
                 </div>
 
@@ -442,11 +453,11 @@
                                 <div style="font-size: 11px; color: var(--text-gray);">ቻናሉን ይቀላቀሉ (+2.00 ETB)</div>
                             </div>
                         </div>
-                        <span style="color: var(--accent-blue); font-weight: bold; font-size: 13px;">+2.00 ETB</span>
+                        <span style="color: #10b981; font-weight: bold; font-size: 13px;">+2.00 ETB</span>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 4px;">
                         <button class="btn-sm btn-sm-secondary" style="flex: 1;" onclick="openChannel('https://t.me/Tipsmickey')">1. Join</button>
-                        <button class="btn-sm" style="flex: 1;" id="btn-task-tips" onclick="doVerifyTask('task_tips_mickey', 'btn-task-tips')">2. Check</button>
+                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-tips" onclick="doClaimTask('task_tips_mickey', 'btn-task-tips')">🎁 Claim 2 ETB</button>
                     </div>
                 </div>
             </div>
@@ -589,13 +600,7 @@
 
         let currentUserId = getUserId();
 
-        let deviceId = localStorage.getItem("app_device_id");
-        if (!deviceId) {
-            deviceId = "dev_" + Math.random().toString(36).substring(2, 12) + "_" + Date.now();
-            localStorage.setItem("app_device_id", deviceId);
-        }
-
-        const myReferralUrl = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId || ADMIN_ID}`;
+        const myReferralUrl = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
         document.getElementById('refLinkInput').value = myReferralUrl;
 
         let urlParams = new URLSearchParams(window.location.search);
@@ -616,8 +621,7 @@
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
-        // የስልኩ ማረጋገጫ (መልቲ አካውንት ድጋፍ)
-        const isLocallyVerified = localStorage.getItem(`verified_${deviceId}`) === "true";
+        const isLocallyVerified = localStorage.getItem(`verified_${currentUserId}`) === "true";
         if (isLocallyVerified) {
             unlockApp();
         }
@@ -647,14 +651,13 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     user_id: currentUserId,
-                    device_id: deviceId,
                     referrer_id: activeReferrer
                 })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.status === "verified" || data.verified) {
-                    localStorage.setItem(`verified_${deviceId}`, "true");
+                    localStorage.setItem(`verified_${currentUserId}`, "true");
                     localStorage.removeItem("pending_referrer");
                     unlockApp();
                 } else {
@@ -698,12 +701,14 @@
         }
 
         function fetchUserData() {
-            currentUserId = getUserId() || ADMIN_ID;
-            fetch(`${API_BASE}/api/user?id=${currentUserId}&device_id=${deviceId}`)
+            currentUserId = getUserId();
+            if (!currentUserId || !/^\d+$/.test(currentUserId)) return;
+
+            fetch(`${API_BASE}/api/user?id=${currentUserId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.verified) {
-                        localStorage.setItem(`verified_${deviceId}`, "true");
+                        localStorage.setItem(`verified_${currentUserId}`, "true");
                     }
                     currentBalance = data.balance || 0;
                     const invites = data.invites || 0;
@@ -713,56 +718,58 @@
                     document.getElementById('invite-count').innerText = invites;
                     document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
 
+                    // የተሰሩ ታስኮችን ምልክት ማድረግ
                     if (completedTasks.includes('task_money_power')) {
                         const b1 = document.getElementById('btn-task-money');
                         b1.disabled = true;
-                        b1.innerText = "Done ✓";
+                        b1.innerText = "Claimed ✓";
                         b1.style.background = "#172338";
                     }
                     if (completedTasks.includes('task_tips_mickey')) {
                         const b2 = document.getElementById('btn-task-tips');
                         b2.disabled = true;
-                        b2.innerText = "Done ✓";
+                        b2.innerText = "Claimed ✓";
                         b2.style.background = "#172338";
                     }
                 })
                 .catch(err => console.log(err));
         }
 
-        function doVerifyTask(taskId, btnId) {
+        // ታስክ ክሌም ማድረጊያ
+        function doClaimTask(taskId, btnId) {
             const btn = document.getElementById(btnId);
-            currentUserId = getUserId() || ADMIN_ID;
+            currentUserId = getUserId();
 
             if (!currentUserId || !/^\d+$/.test(currentUserId)) {
                 alert("የእርስዎን የቴሌግራም መለያ ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ቦትዎ ውስጥ ይክፈቱት!");
                 return;
             }
 
-            btn.innerText = "...";
+            btn.innerText = "በማረጋገጥ ላይ...";
             btn.disabled = true;
 
             fetch(`${API_BASE}/api/task/verify`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: currentUserId, device_id: deviceId, task_id: taskId })
+                body: JSON.stringify({ user_id: currentUserId, task_id: taskId })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
                     currentBalance = data.balance;
                     document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                    btn.innerText = "Done ✓";
+                    btn.innerText = "Claimed ✓";
                     btn.style.background = "#172338";
-                    alert(`🎉 እንኳን ደስ አለዎት! ቻናሉን ስለተቀላቀሉ +${data.reward}.00 ETB ወደ ሂሳብዎ ገብቷል!`);
+                    alert(`🎉 እንኳን ደስ አለዎት! ቻናሉን ስለተቀላቀሉ +${data.reward}.00 ETB ክሌም አድርገዋል!`);
                 } else {
                     alert(data.message || "ቻናሉን አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ።");
-                    btn.innerText = "2. Check";
+                    btn.innerText = "🎁 Claim 2 ETB";
                     btn.disabled = false;
                 }
             })
             .catch(() => {
                 alert("የኔትወርክ ስህተት ተፈጥሯል!");
-                btn.innerText = "2. Check";
+                btn.innerText = "🎁 Claim 2 ETB";
                 btn.disabled = false;
             });
         }
@@ -788,9 +795,10 @@
 
         function renderHistory() {
             const listDiv = document.getElementById('userHistoryList');
-            currentUserId = getUserId() || ADMIN_ID;
+            currentUserId = getUserId();
+            if (!currentUserId || !/^\d+$/.test(currentUserId)) return;
 
-            fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}&device_id=${deviceId}`)
+            fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
                 .then(res => res.json())
                 .then(serverHistory => {
                     displayHistoryItems(serverHistory);
@@ -847,14 +855,13 @@
 
             msgBox.style.color = "#8fa0bc";
             msgBox.innerText = "በማስተናገድ ላይ...";
-            currentUserId = getUserId() || ADMIN_ID;
+            currentUserId = getUserId();
 
             fetch(`${API_BASE}/api/withdraw`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     user_id: currentUserId,
-                    device_id: deviceId,
                     amount: amount,
                     phone: phone,
                     method: method
@@ -948,7 +955,7 @@
 
             msgBox.style.color = "#8fa0bc";
             msgBox.innerText = "በመላክ ላይ...";
-            currentUserId = getUserId() || ADMIN_ID;
+            currentUserId = getUserId();
 
             fetch(`${API_BASE}/api/admin/add_balance`, {
                 method: "POST",
@@ -963,7 +970,7 @@
             .then(data => {
                 if (data.status === "success") {
                     msgBox.style.color = "#24a1de";
-                    msgBox.innerText = `ተልኳል! የአካውንቱ አዲስ ቀሪ ሂሳብ፦ ${data.new_balance} ETB`;
+                    msgBox.innerText = `ለ ID ${targetId} ተልኳል! አዲሱ ቀሪ ሂሳቡ፦ ${data.new_balance} ETB`;
                     document.getElementById('adminTargetId').value = "";
                     document.getElementById('adminAddAmount').value = "";
                 } else {
@@ -977,16 +984,18 @@
             });
         }
 
-        currentUserId = getUserId() || ADMIN_ID;
-        fetch(`${API_BASE}/api/user?id=${currentUserId}&device_id=${deviceId}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.verified) {
-                    localStorage.setItem(`verified_${deviceId}`, "true");
-                    unlockApp();
-                }
-            })
-            .catch(() => {});
+        currentUserId = getUserId();
+        if (currentUserId && /^\d+$/.test(currentUserId)) {
+            fetch(`${API_BASE}/api/user?id=${currentUserId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.verified) {
+                        localStorage.setItem(`verified_${currentUserId}`, "true");
+                        unlockApp();
+                    }
+                })
+                .catch(() => {});
+        }
     </script>
 </body>
 </html>
