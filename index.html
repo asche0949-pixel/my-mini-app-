@@ -390,7 +390,7 @@
             </div>
 
             <button class="btn-verify-main" id="verifyBtnMain" onclick="doVerifyGate()">✓ Verify Membership</button>
-            <div id="gateMsg" style="font-size: 12px; color: #da3633; margin-top: 4px;"></div>
+            <div id="gateMsg" style="font-size: 12px; color: #da3633; margin-top: 6px; font-weight: bold;"></div>
         </div>
 
         <!-- MAIN APP -->
@@ -614,7 +614,6 @@
             referrerId = localStorage.getItem("pending_referrer") || "";
         }
 
-        // ለዘላለም እንዳይጠፋ ከስልኩ ቋሚ ማስታወሻ መውሰድ
         let currentBalance = parseFloat(localStorage.getItem(`perm_bal_${currentUserId}`) || "0.0");
         let completedTasks = JSON.parse(localStorage.getItem(`perm_tasks_${currentUserId}`) || "[]");
 
@@ -622,21 +621,24 @@
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
-        const isLocallyVerified = localStorage.getItem(`verified_${currentUserId}`) === "true";
-        if (isLocallyVerified) {
-            unlockApp();
-        }
-
         function openChannel(url) {
             tg.openTelegramLink(url);
         }
 
+        // ቻናሎቹን ሳያረጋግጥ በፍጹም እንዳያልፍ ማድረግ
         function doVerifyGate() {
             const btn = document.getElementById('verifyBtnMain');
-            currentUserId = getUserId() || "user";
+            const msg = document.getElementById('gateMsg');
+            currentUserId = getUserId();
+
+            if (!currentUserId || !/^\d+$/.test(currentUserId)) {
+                msg.innerText = "እባክዎ አፑን ከቴሌግራም ቦት ውስጥ ይክፈቱት!";
+                return;
+            }
 
             btn.innerText = "በማረጋገጥ ላይ...";
             btn.disabled = true;
+            msg.innerText = "";
 
             const activeReferrer = referrerId || localStorage.getItem("pending_referrer") || "";
 
@@ -648,15 +650,23 @@
                     referrer_id: activeReferrer
                 })
             })
-            .then(res => res.json())
-            .then(() => {
-                localStorage.setItem(`verified_${currentUserId}`, "true");
-                localStorage.removeItem("pending_referrer");
-                unlockApp();
+            .then(res => res.json().then(data => ({ status: res.status, body: data })))
+            .then(res => {
+                if (res.status === 200 && res.body.status === "verified") {
+                    localStorage.setItem(`verified_${currentUserId}`, "true");
+                    localStorage.removeItem("pending_referrer");
+                    unlockApp();
+                } else {
+                    // የቀረውን ቻናል በግልጽ ማሳየት
+                    msg.innerText = res.body.message || "እባክዎ መጀመሪያ የቀሩትን ቻናሎች ይቀላቀሉ!";
+                    btn.innerText = "✓ Verify Membership";
+                    btn.disabled = false;
+                }
             })
             .catch(() => {
-                localStorage.setItem(`verified_${currentUserId}`, "true");
-                unlockApp();
+                msg.innerText = "የኔትወርክ ስህተት ተፈጥሯል፤ እባክዎ እንደገና ይሞክሩ።";
+                btn.innerText = "✓ Verify Membership";
+                btn.disabled = false;
             });
         }
 
@@ -708,7 +718,6 @@
             }
         }
 
-        // ቋሚ ዳታ ከሰርቨር ጋር ማናበብ (Sync)
         function fetchUserData() {
             currentUserId = getUserId();
             if (!currentUserId) return;
@@ -716,7 +725,6 @@
             document.getElementById('balance').innerText = currentBalance.toFixed(2);
             updateTasksUI();
 
-            // ሰርቨሩ ቢተኛም እንኳን ብሩንና ታስኮቹን ከስልኩ ቋሚ ማስታወሻ መላክ
             fetch(`${API_BASE}/api/user`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -728,13 +736,9 @@
             })
             .then(res => res.json())
             .then(data => {
-                localStorage.setItem(`verified_${currentUserId}`, "true");
-                
-                // ትልቁን ቀሪ ሂሳብ መውሰድ (እንዳይቀንስ)
                 currentBalance = Math.max(currentBalance, data.balance || 0);
                 localStorage.setItem(`perm_bal_${currentUserId}`, currentBalance);
 
-                // ታስኮችን አንድ ላይ ማዋሃድ
                 const mergedTasks = Array.from(new Set([...completedTasks, ...(data.completed_tasks || [])]));
                 completedTasks = mergedTasks;
                 localStorage.setItem(`perm_tasks_${currentUserId}`, JSON.stringify(completedTasks));
@@ -751,7 +755,6 @@
             });
         }
 
-        // ታስክ ክሌም ማድረጊያ (አንዴ ብቻ እንዲሆን ማድረግ)
         function doClaimTask(taskId, btnId) {
             const btn = document.getElementById(btnId);
             currentUserId = getUserId();
@@ -784,7 +787,7 @@
                     updateTasksUI();
                     alert(`🎉 እንኳን ደስ አለዎት! +${data.reward}.00 ETB ወስደዋል! ታስኩ ተጠናቋል።`);
                 } else {
-                    alert(data.message || "ስህተት ተፈጥሯል!");
+                    alert(data.message || "ቻናሉን አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ።");
                     btn.innerText = "🎁 Claim 2 ETB";
                     btn.disabled = false;
                 }
@@ -1016,11 +1019,7 @@
             });
         }
 
-        currentUserId = getUserId();
-        if (currentUserId) {
-            const isVer = localStorage.getItem(`verified_${currentUserId}`) === "true";
-            if (isVer) unlockApp();
-        }
+        // ገና ሲከፈት ያለ ማረጋገጫ በቀጥታ እንዳይከፍት ተስተካክሏል
     </script>
 </body>
 </html>
