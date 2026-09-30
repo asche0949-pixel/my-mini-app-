@@ -118,6 +118,13 @@
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-join.joined {
+            background: #12283a;
+            color: #10b981;
+            border: 1px solid #10b981;
         }
 
         .btn-verify-main {
@@ -352,7 +359,7 @@
         <div id="gateScreen">
             <div class="gate-logo">🎁</div>
             <div class="gate-title">Join Our Channels</div>
-            <div class="gate-sub">Plus Appን ለመጠቀም መጀመሪያ ከታች ያሉትን ቻናሎች ይቀላቀሉ!</div>
+            <div class="gate-sub">Plus Appን ለመጠቀም መጀመሪያ ከታች ያሉትን 3 ቻናሎች ይቀላቀሉ!</div>
 
             <div class="gate-channels-list">
                 <div class="gate-channel-card">
@@ -363,7 +370,7 @@
                             <div style="font-size: 11px; color: var(--text-gray);">ተጭነው ቻናሉን ይቀላቀሉ</div>
                         </div>
                     </div>
-                    <button class="btn-join" onclick="openChannel('https://t.me/PlusTechHub')">Join</button>
+                    <button class="btn-join" id="btn-ch-1" onclick="joinGateChannel('https://t.me/PlusTechHub', 'btn-ch-1')">Join</button>
                 </div>
 
                 <div class="gate-channel-card">
@@ -374,7 +381,7 @@
                             <div style="font-size: 11px; color: var(--text-gray);">ተጭነው ቻናሉን ይቀላቀሉ</div>
                         </div>
                     </div>
-                    <button class="btn-join" onclick="openChannel('https://t.me/Eth_online_job')">Join</button>
+                    <button class="btn-join" id="btn-ch-2" onclick="joinGateChannel('https://t.me/Eth_online_job', 'btn-ch-2')">Join</button>
                 </div>
 
                 <div class="gate-channel-card">
@@ -385,12 +392,12 @@
                             <div style="font-size: 11px; color: var(--text-gray);">ተጭነው ቻናሉን ይቀላቀሉ</div>
                         </div>
                     </div>
-                    <button class="btn-join" onclick="openChannel('https://t.me/Alphatech_earn')">Join</button>
+                    <button class="btn-join" id="btn-ch-3" onclick="joinGateChannel('https://t.me/Alphatech_earn', 'btn-ch-3')">Join</button>
                 </div>
             </div>
 
             <button class="btn-verify-main" id="verifyBtnMain" onclick="doVerifyGate()">✓ Verify Membership</button>
-            <div id="gateMsg" style="font-size: 13px; color: #ff5252; margin-top: 8px; font-weight: bold;"></div>
+            <div id="gateMsg" style="font-size: 13px; color: #ff5252; margin-top: 8px; font-weight: bold; line-height: 1.4;"></div>
         </div>
 
         <!-- MAIN APP -->
@@ -439,8 +446,8 @@
                         <span style="color: #10b981; font-weight: bold; font-size: 13px;">+2.00 ETB</span>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 4px;">
-                        <button class="btn-sm btn-sm-secondary" style="flex: 1;" onclick="openChannel('https://t.me/money_power54')">1. Join</button>
-                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-money" onclick="doClaimTask('task_money_power', 'btn-task-money')">🎁 Claim 2 ETB</button>
+                        <button class="btn-sm btn-sm-secondary" id="btn-task1-join" style="flex: 1;" onclick="joinSingleTask('https://t.me/money_power54', 'btn-task1-join')">1. Join</button>
+                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-money" onclick="claimSingleTask('task_money_power', 'btn-task-money', 'btn-task1-join')">🎁 Claim 2 ETB</button>
                     </div>
                 </div>
 
@@ -456,8 +463,8 @@
                         <span style="color: #10b981; font-weight: bold; font-size: 13px;">+2.00 ETB</span>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 4px;">
-                        <button class="btn-sm btn-sm-secondary" style="flex: 1;" onclick="openChannel('https://t.me/Tipsmickey')">1. Join</button>
-                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-tips" onclick="doClaimTask('task_tips_mickey', 'btn-task-tips')">🎁 Claim 2 ETB</button>
+                        <button class="btn-sm btn-sm-secondary" id="btn-task2-join" style="flex: 1;" onclick="joinSingleTask('https://t.me/Tipsmickey', 'btn-task2-join')">1. Join</button>
+                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-tips" onclick="claimSingleTask('task_tips_mickey', 'btn-task-tips', 'btn-task2-join')">🎁 Claim 2 ETB</button>
                     </div>
                 </div>
             </div>
@@ -621,13 +628,51 @@
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
-        function openChannel(url) {
+        // ቻናሎችን የመቀላቀል ሁኔታ መከታተያ
+        let joinedGates = JSON.parse(localStorage.getItem(`joined_gate_${currentUserId}`) || "[]");
+
+        function renderGateUI() {
+            if (joinedGates.includes('btn-ch-1')) {
+                const b = document.getElementById('btn-ch-1');
+                if (b) { b.innerText = "Joined ✓"; b.classList.add('joined'); }
+            }
+            if (joinedGates.includes('btn-ch-2')) {
+                const b = document.getElementById('btn-ch-2');
+                if (b) { b.innerText = "Joined ✓"; b.classList.add('joined'); }
+            }
+            if (joinedGates.includes('btn-ch-3')) {
+                const b = document.getElementById('btn-ch-3');
+                if (b) { b.innerText = "Joined ✓"; b.classList.add('joined'); }
+            }
+        }
+        renderGateUI();
+
+        function joinGateChannel(url, btnId) {
             tg.openTelegramLink(url);
+            if (!joinedGates.includes(btnId)) {
+                joinedGates.push(btnId);
+                localStorage.setItem(`joined_gate_${currentUserId}`, JSON.stringify(joinedGates));
+            }
+            renderGateUI();
         }
 
-        // Verify Membership ሲነካ ያለምንም እንከን በቀጥታ እንዲያሳልፍ
+        // ጥብቅ ማጣሪያ፦ ሶስቱንም ካልተቀላቀለ በፍጹም አያሳልፍም!
         function doVerifyGate() {
             const btn = document.getElementById('verifyBtnMain');
+            const msg = document.getElementById('gateMsg');
+            msg.innerText = "";
+
+            const missing = [];
+            if (!joinedGates.includes('btn-ch-1')) missing.push("@PlusTechHub");
+            if (!joinedGates.includes('btn-ch-2')) missing.push("@Eth_online_job");
+            if (!joinedGates.includes('btn-ch-3')) missing.push("@Alphatech_earn");
+
+            // አንዱም ቢቀር ያግደዋል!
+            if (missing.length > 0) {
+                msg.innerText = `አልተቀላቀሉም! እባክዎ የቀረዎትን ቻናል ይቀላቀሉ፦ ${missing.join(', ')}`;
+                return;
+            }
+
             btn.innerText = "በማረጋገጥ ላይ...";
             btn.disabled = true;
 
@@ -643,13 +688,74 @@
             })
             .then(res => res.json())
             .then(() => {
-                localStorage.setItem(`verified_${currentUserId}`, "true");
                 localStorage.removeItem("pending_referrer");
                 unlockApp();
             })
             .catch(() => {
-                localStorage.setItem(`verified_${currentUserId}`, "true");
                 unlockApp();
+            });
+        }
+
+        let tasksJoined = {};
+        function joinSingleTask(url, btnId) {
+            tg.openTelegramLink(url);
+            tasksJoined[btnId] = true;
+            const b = document.getElementById(btnId);
+            if (b) {
+                b.innerText = "Joined ✓";
+                b.style.background = "#12283a";
+                b.style.color = "#10b981";
+                b.style.border = "1px solid #10b981";
+            }
+        }
+
+        function claimSingleTask(taskId, btnId, joinBtnId) {
+            const btn = document.getElementById(btnId);
+            currentUserId = getUserId();
+
+            if (completedTasks.includes(taskId)) {
+                alert("ይህንን ታስክ አስቀድመው ወስደዋል!");
+                return;
+            }
+
+            // መጀመሪያ ቻናሉን ካልተቀላቀለ መከልከል
+            if (!tasksJoined[joinBtnId]) {
+                alert("እባክዎ መጀመሪያ 1. Join የሚለውን ነክተው ቻናሉን ይቀላቀሉ!");
+                return;
+            }
+
+            btn.innerText = "በማረጋገጥ ላይ...";
+            btn.disabled = true;
+
+            fetch(`${API_BASE}/api/task/verify`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: currentUserId, task_id: taskId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                currentBalance = (data.balance !== undefined) ? data.balance : (currentBalance + 2.0);
+                localStorage.setItem(`perm_bal_${currentUserId}`, currentBalance);
+                
+                if (!completedTasks.includes(taskId)) {
+                    completedTasks.push(taskId);
+                    localStorage.setItem(`perm_tasks_${currentUserId}`, JSON.stringify(completedTasks));
+                }
+
+                document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                updateTasksUI();
+                alert("🎉 እንኳን ደስ አለዎት! +2.00 ETB ወደ አካውንትዎ ገብቷል!");
+            })
+            .catch(() => {
+                currentBalance += 2.0;
+                localStorage.setItem(`perm_bal_${currentUserId}`, currentBalance);
+                if (!completedTasks.includes(taskId)) {
+                    completedTasks.push(taskId);
+                    localStorage.setItem(`perm_tasks_${currentUserId}`, JSON.stringify(completedTasks));
+                }
+                document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                updateTasksUI();
+                alert("🎉 እንኳን ደስ አለዎት! +2.00 ETB ወደ አካውንትዎ ገብቷል!");
             });
         }
 
@@ -735,50 +841,6 @@
             .catch(() => {
                 document.getElementById('balance').innerText = currentBalance.toFixed(2);
                 updateTasksUI();
-            });
-        }
-
-        function doClaimTask(taskId, btnId) {
-            const btn = document.getElementById(btnId);
-            currentUserId = getUserId();
-
-            if (completedTasks.includes(taskId)) {
-                alert("ይህንን ታስክ አስቀድመው ወስደዋል!");
-                return;
-            }
-
-            btn.innerText = "በማረጋገጥ ላይ...";
-            btn.disabled = true;
-
-            fetch(`${API_BASE}/api/task/verify`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: currentUserId, task_id: taskId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                currentBalance = (data.balance !== undefined) ? data.balance : (currentBalance + 2.0);
-                localStorage.setItem(`perm_bal_${currentUserId}`, currentBalance);
-                
-                if (!completedTasks.includes(taskId)) {
-                    completedTasks.push(taskId);
-                    localStorage.setItem(`perm_tasks_${currentUserId}`, JSON.stringify(completedTasks));
-                }
-
-                document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                updateTasksUI();
-                alert("🎉 እንኳን ደስ አለዎት! +2.00 ETB ወደ አካውንትዎ ገብቷል!");
-            })
-            .catch(() => {
-                currentBalance += 2.0;
-                localStorage.setItem(`perm_bal_${currentUserId}`, currentBalance);
-                if (!completedTasks.includes(taskId)) {
-                    completedTasks.push(taskId);
-                    localStorage.setItem(`perm_tasks_${currentUserId}`, JSON.stringify(completedTasks));
-                }
-                document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                updateTasksUI();
-                alert("🎉 እንኳን ደስ አለዎት! +2.00 ETB ወደ አካውንትዎ ገብቷል!");
             });
         }
 
