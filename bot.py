@@ -14,13 +14,29 @@ ADMIN_ID = "8556328355"
 BOT_USERNAME = "Plus_appbot"
 DATA_FILE = "database.json"
 
-# የግዴታ መግቢያ ቻናሎች
 GATE_CHANNELS = ["@PlusTechHub", "@Eth_online_job", "@Alphatech_earn"]
 
 TASK_CHANNELS = {
     "task_money_power": {"channel": "@money_power54", "reward": 2.0},
     "task_tips_mickey": {"channel": "@Tipsmickey", "reward": 2.0}
 }
+
+# የቻናሎች መለያ ID መያዣ
+channel_ids_cache = {}
+
+def get_channel_chat_id(username):
+    if username in channel_ids_cache:
+        return channel_ids_cache[username]
+    try:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChat"
+        res = requests.get(url, params={"chat_id": username}, timeout=5).json()
+        if res.get("ok"):
+            cid = res["result"]["id"]
+            channel_ids_cache[username] = cid
+            return cid
+    except Exception:
+        pass
+    return username
 
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -66,15 +82,16 @@ def send_telegram_message(chat_id, text, reply_markup=None):
     except Exception as e:
         print(f"Send error: {e}")
 
-# አባልነትን 100% አጥብቆ መፈተሽ
-def check_member(channel, user_id):
+# አባልነትን በ ID መፈተሽ
+def check_member(channel_username, user_id):
     str_id = str(user_id).strip()
     if not str_id.isdigit():
         return False
 
+    chat_id = get_channel_chat_id(channel_username)
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
     try:
-        res = requests.get(url, params={"chat_id": channel, "user_id": int(str_id)}, timeout=5).json()
+        res = requests.get(url, params={"chat_id": chat_id, "user_id": int(str_id)}, timeout=5).json()
         if res.get("ok"):
             status = res.get("result", {}).get("status", "")
             return status in ["member", "administrator", "creator", "restricted"]
@@ -110,7 +127,6 @@ def get_or_sync_user():
         save_data(db)
         return jsonify(user_data)
 
-# ጥብቅ የቻናሎች ማረጋገጫ (አንዱም ቢቀር የቀረውን ስም ጠቅሶ ይከለክላል)
 @app.route("/api/verify_membership", methods=["POST"])
 def verify_membership():
     data = request.json or {}
@@ -120,7 +136,7 @@ def verify_membership():
     if not user_id.isdigit():
         return jsonify({
             "status": "not_joined",
-            "message": "የቴሌግራም መለያዎን ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ቦት ውስጥ ይክፈቱት!",
+            "message": "የቴሌግራም መለያ ማግኘት አልተቻለም። እባክዎ አፑን ከቴሌግራም ውስጥ ይክፈቱት!",
             "verified": False
         }), 400
 
@@ -129,7 +145,6 @@ def verify_membership():
         if not check_member(ch, user_id):
             missing.append(ch)
 
-    # አንድም ቻናል ከቀረ ስሙን ጠቅሶ መከልከል!
     if missing:
         missing_text = ", ".join(missing)
         return jsonify({
@@ -142,7 +157,6 @@ def verify_membership():
     db = load_data()
     user_data = get_or_create_user(db, user_id)
 
-    # ሪፈራል መጨመር
     if referrer_id and referrer_id.isdigit() and referrer_id != user_id and user_id not in db["invited_users"]:
         db["invited_users"].append(user_id)
         ref_user = get_or_create_user(db, referrer_id)
@@ -163,7 +177,6 @@ def verify_membership():
 
     return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
 
-# የታስክ ማረጋገጫ (ቻናሉን ሳይቀላቀል በፍጹም ብር አይሰጥም)
 @app.route("/api/task/verify", methods=["POST"])
 def verify_task():
     data = request.json or {}
@@ -331,7 +344,9 @@ def bot_polling_loop():
                                     [{"text": "📢 ቻናል 3", "url": "https://t.me/Alphatech_earn"}]
                                 ]
                             }
-                            send_telegram_message(chat_id, welcome_text, keyboard)
+                            se
+                            
+                            nd_telegram_message(chat_id, welcome_text, keyboard)
         except Exception:
             time.sleep(2)
 
