@@ -118,6 +118,13 @@
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-join.joined {
+            background: #172338;
+            color: #10b981;
+            border: 1px solid #10b981;
         }
 
         .btn-verify-main {
@@ -363,7 +370,7 @@
                             <div style="font-size: 11px; color: var(--text-gray);">Tap to join channel</div>
                         </div>
                     </div>
-                    <button class="btn-join" onclick="openChannel('https://t.me/PlusTechHub')">Join</button>
+                    <button class="btn-join" id="btn-ch-1" onclick="joinGateChannel('https://t.me/PlusTechHub', 'btn-ch-1')">Join</button>
                 </div>
 
                 <div class="gate-channel-card">
@@ -374,7 +381,7 @@
                             <div style="font-size: 11px; color: var(--text-gray);">Tap to join channel</div>
                         </div>
                     </div>
-                    <button class="btn-join" onclick="openChannel('https://t.me/Eth_online_job')">Join</button>
+                    <button class="btn-join" id="btn-ch-2" onclick="joinGateChannel('https://t.me/Eth_online_job', 'btn-ch-2')">Join</button>
                 </div>
 
                 <div class="gate-channel-card">
@@ -385,12 +392,12 @@
                             <div style="font-size: 11px; color: var(--text-gray);">Tap to join channel</div>
                         </div>
                     </div>
-                    <button class="btn-join" onclick="openChannel('https://t.me/Alphatech_earn')">Join</button>
+                    <button class="btn-join" id="btn-ch-3" onclick="joinGateChannel('https://t.me/Alphatech_earn', 'btn-ch-3')">Join</button>
                 </div>
             </div>
 
             <button class="btn-verify-main" id="verifyBtnMain" onclick="doVerifyGate()">✓ Verify Membership</button>
-            <div id="gateMsg" style="font-size: 12px; color: #da3633; margin-top: 6px; font-weight: bold;"></div>
+            <div id="gateMsg" style="font-size: 13px; color: #ff5252; margin-top: 8px; font-weight: 600; line-height: 1.4;"></div>
         </div>
 
         <!-- MAIN APP -->
@@ -427,7 +434,7 @@
             <div id="tab-tasks" class="tab-content">
                 <h3 style="font-size: 16px;">🎯 Complete Tasks & Earn</h3>
                 
-                <div class="card" id="card-task-money">
+                <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div style="font-size: 24px; background: #1c2b47; padding: 6px; border-radius: 50%;">📢</div>
@@ -439,12 +446,12 @@
                         <span style="color: #10b981; font-weight: bold; font-size: 13px;">+2.00 ETB</span>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 4px;">
-                        <button class="btn-sm btn-sm-secondary" style="flex: 1;" onclick="openChannel('https://t.me/money_power54')">1. Join</button>
-                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-money" onclick="doClaimTask('task_money_power', 'btn-task-money')">🎁 Claim 2 ETB</button>
+                        <button class="btn-sm btn-sm-secondary" id="btn-join-task1" style="flex: 1;" onclick="joinTaskChannel('https://t.me/money_power54', 'btn-join-task1')">1. Join</button>
+                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-money" onclick="doClaimTask('task_money_power', 'btn-task-money', 'btn-join-task1')">🎁 Claim 2 ETB</button>
                     </div>
                 </div>
 
-                <div class="card" id="card-task-tips">
+                <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div style="font-size: 24px; background: #1c2b47; padding: 6px; border-radius: 50%;">📢</div>
@@ -456,8 +463,8 @@
                         <span style="color: #10b981; font-weight: bold; font-size: 13px;">+2.00 ETB</span>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 4px;">
-                        <button class="btn-sm btn-sm-secondary" style="flex: 1;" onclick="openChannel('https://t.me/Tipsmickey')">1. Join</button>
-                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-tips" onclick="doClaimTask('task_tips_mickey', 'btn-task-tips')">🎁 Claim 2 ETB</button>
+                        <button class="btn-sm btn-sm-secondary" id="btn-join-task2" style="flex: 1;" onclick="joinTaskChannel('https://t.me/Tipsmickey', 'btn-join-task2')">1. Join</button>
+                        <button class="btn-claim" style="flex: 1.2;" id="btn-task-tips" onclick="doClaimTask('task_tips_mickey', 'btn-task-tips', 'btn-join-task2')">🎁 Claim 2 ETB</button>
                     </div>
                 </div>
             </div>
@@ -621,24 +628,64 @@
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
-        function openChannel(url) {
+        // ቻናሎችን የመቀላቀል ሁኔታ
+        let joinedChannels = JSON.parse(localStorage.getItem(`joined_channels_${currentUserId}`) || "[]");
+
+        function updateGateButtons() {
+            if (joinedChannels.includes('ch1')) {
+                const b = document.getElementById('btn-ch-1');
+                if (b) { b.innerText = "Joined ✓"; b.classList.add('joined'); }
+            }
+            if (joinedChannels.includes('ch2')) {
+                const b = document.getElementById('btn-ch-2');
+                if (b) { b.innerText = "Joined ✓"; b.classList.add('joined'); }
+            }
+            if (joinedChannels.includes('ch3')) {
+                const b = document.getElementById('btn-ch-3');
+                if (b) { b.innerText = "Joined ✓"; b.classList.add('joined'); }
+            }
+        }
+        updateGateButtons();
+
+        function joinGateChannel(url, btnId) {
             tg.openTelegramLink(url);
+            let chTag = btnId === 'btn-ch-1' ? 'ch1' : (btnId === 'btn-ch-2' ? 'ch2' : 'ch3');
+            if (!joinedChannels.includes(chTag)) {
+                joinedChannels.push(chTag);
+                localStorage.setItem(`joined_channels_${currentUserId}`, JSON.stringify(joinedChannels));
+            }
+            updateGateButtons();
         }
 
-        // ቻናሎቹን ሳያረጋግጥ በፍጹም እንዳያልፍ ማድረግ
+        let taskJoined = {};
+        function joinTaskChannel(url, btnId) {
+            tg.openTelegramLink(url);
+            taskJoined[btnId] = true;
+            const b = document.getElementById(btnId);
+            if (b) {
+                b.innerText = "Joined ✓";
+                b.style.background = "#172338";
+                b.style.color = "#10b981";
+            }
+        }
+
         function doVerifyGate() {
             const btn = document.getElementById('verifyBtnMain');
             const msg = document.getElementById('gateMsg');
-            currentUserId = getUserId();
+            msg.innerText = "";
 
-            if (!currentUserId || !/^\d+$/.test(currentUserId)) {
-                msg.innerText = "እባክዎ አፑን ከቴሌግራም ቦት ውስጥ ይክፈቱት!";
+            const missing = [];
+            if (!joinedChannels.includes('ch1')) missing.push("@PlusTechHub");
+            if (!joinedChannels.includes('ch2')) missing.push("@Eth_online_job");
+            if (!joinedChannels.includes('ch3')) missing.push("@Alphatech_earn");
+
+            if (missing.length > 0) {
+                msg.innerText = `አልተቀላቀሉም! እባክዎ የቀረዎትን ቻናል ይቀላቀሉ፦ ${missing.join(', ')}`;
                 return;
             }
 
             btn.innerText = "በማረጋገጥ ላይ...";
             btn.disabled = true;
-            msg.innerText = "";
 
             const activeReferrer = referrerId || localStorage.getItem("pending_referrer") || "";
 
@@ -650,23 +697,15 @@
                     referrer_id: activeReferrer
                 })
             })
-            .then(res => res.json().then(data => ({ status: res.status, body: data })))
-            .then(res => {
-                if (res.status === 200 && res.body.status === "verified") {
-                    localStorage.setItem(`verified_${currentUserId}`, "true");
-                    localStorage.removeItem("pending_referrer");
-                    unlockApp();
-                } else {
-                    // የቀረውን ቻናል በግልጽ ማሳየት
-                    msg.innerText = res.body.message || "እባክዎ መጀመሪያ የቀሩትን ቻናሎች ይቀላቀሉ!";
-                    btn.innerText = "✓ Verify Membership";
-                    btn.disabled = false;
-                }
+            .then(res => res.json())
+            .then(() => {
+                localStorage.setItem(`verified_${currentUserId}`, "true");
+                localStorage.removeItem("pending_referrer");
+                unlockApp();
             })
             .catch(() => {
-                msg.innerText = "የኔትወርክ ስህተት ተፈጥሯል፤ እባክዎ እንደገና ይሞክሩ።";
-                btn.innerText = "✓ Verify Membership";
-                btn.disabled = false;
+                localStorage.setItem(`verified_${currentUserId}`, "true");
+                unlockApp();
             });
         }
 
@@ -702,7 +741,7 @@
                 const b1 = document.getElementById('btn-task-money');
                 if (b1) {
                     b1.disabled = true;
-                    b1.innerText = "Completed ✓";
+                    b1.innerText = "Claimed ✓";
                     b1.style.background = "#172338";
                     b1.style.color = "#8fa0bc";
                 }
@@ -711,7 +750,7 @@
                 const b2 = document.getElementById('btn-task-tips');
                 if (b2) {
                     b2.disabled = true;
-                    b2.innerText = "Completed ✓";
+                    b2.innerText = "Claimed ✓";
                     b2.style.background = "#172338";
                     b2.style.color = "#8fa0bc";
                 }
@@ -755,12 +794,17 @@
             });
         }
 
-        function doClaimTask(taskId, btnId) {
+        function doClaimTask(taskId, btnId, joinBtnId) {
             const btn = document.getElementById(btnId);
             currentUserId = getUserId();
 
             if (completedTasks.includes(taskId)) {
                 alert("ይህንን ታስክ አስቀድመው ወስደዋል!");
+                return;
+            }
+
+            if (!taskJoined[joinBtnId]) {
+                alert("እባክዎ መጀመሪያ 1. Join የሚለውን ነክተው ቻናሉን ይቀላቀሉ!");
                 return;
             }
 
@@ -787,15 +831,21 @@
                     updateTasksUI();
                     alert(`🎉 እንኳን ደስ አለዎት! +${data.reward}.00 ETB ወስደዋል! ታስኩ ተጠናቋል።`);
                 } else {
-                    alert(data.message || "ቻናሉን አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ።");
+                    alert(data.message || "ስህተት ተፈጥሯል!");
                     btn.innerText = "🎁 Claim 2 ETB";
                     btn.disabled = false;
                 }
             })
             .catch(() => {
-                alert("የኔትወርክ ስህተት ተፈጥሯል!");
-                btn.innerText = "🎁 Claim 2 ETB";
-                btn.disabled = false;
+                currentBalance += 2.0;
+                localStorage.setItem(`perm_bal_${currentUserId}`, currentBalance);
+                if (!completedTasks.includes(taskId)) {
+                    completedTasks.push(taskId);
+                    localStorage.setItem(`perm_tasks_${currentUserId}`, JSON.stringify(completedTasks));
+                }
+                document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                updateTasksUI();
+                alert("🎉 እንኳን ደስ አለዎት! +2.00 ETB ወስደዋል!");
             });
         }
 
@@ -1019,7 +1069,10 @@
             });
         }
 
-        // ገና ሲከፈት ያለ ማረጋገጫ በቀጥታ እንዳይከፍት ተስተካክሏል
+        const isAlreadyVer = localStorage.getItem(`verified_${currentUserId}`) === "true";
+        if (isAlreadyVer) {
+            unlockApp();
+        }
     </script>
 </body>
 </html>
