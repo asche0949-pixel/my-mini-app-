@@ -28,7 +28,7 @@ def load_data():
                 return json.load(f)
         except Exception:
             pass
-    return {"users": {}, "device_map": {}, "withdraw_requests": [], "invited_devices": []}
+    return {"users": {}, "withdraw_requests": [], "invited_users": []}
 
 def save_data(data):
     try:
@@ -37,35 +37,23 @@ def save_data(data):
     except Exception as e:
         print(f"Error saving data: {e}")
 
-# መልቲ አካውንት ማስተናገጃ
-def get_or_create_user(db, user_id, device_id=""):
+def get_or_create_user(db, user_id):
     str_id = str(user_id).strip()
-    dev_id = str(device_id).strip() if device_id else str_id
+    if not str_id or str_id == "None":
+        str_id = "unknown"
 
-    if "device_map" not in db:
-        db["device_map"] = {}
-
-    # ስልኩ ከዚህ ቀደም በሌላ አካውንት ከገባ ያንኑ የቀድሞውን አካውንት ያመጣል
-    primary_id = db["device_map"].get(dev_id, str_id)
-    db["device_map"][dev_id] = primary_id
-
-    if primary_id not in db["users"]:
-        db["users"][primary_id] = {
+    if str_id not in db["users"]:
+        db["users"][str_id] = {
             "balance": 0.0,
             "invites": 0,
             "verified": False,
-            "completed_tasks": [],
-            "devices": [dev_id]
+            "completed_tasks": []
         }
     else:
-        if "completed_tasks" not in db["users"][primary_id]:
-            db["users"][primary_id]["completed_tasks"] = []
-        if "devices" not in db["users"][primary_id]:
-            db["users"][primary_id]["devices"] = []
-        if dev_id not in db["users"][primary_id]["devices"]:
-            db["users"][primary_id]["devices"].append(dev_id)
+        if "completed_tasks" not in db["users"][str_id]:
+            db["users"][str_id]["completed_tasks"] = []
 
-    return primary_id, db["users"][primary_id]
+    return db["users"][str_id]
 
 def send_telegram_message(chat_id, text, reply_markup=None):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -77,7 +65,6 @@ def send_telegram_message(chat_id, text, reply_markup=None):
     except Exception as e:
         print(f"Send error: {e}")
 
-# ቻናሉን በትክክል መቀላቀሉን የሚያረጋግጥ (ካልተቀላቀለ በፍጹም አያልፍም)
 def check_member(channel, user_id):
     str_id = str(user_id).strip()
     if not str_id.isdigit():
@@ -90,8 +77,7 @@ def check_member(channel, user_id):
             status = res.get("result", {}).get("status", "")
             return status in ["member", "administrator", "creator", "restricted"]
         return False
-    except Exception as e:
-        print(f"Error checking {channel}: {e}")
+    except Exception:
         return False
 
 @app.route("/")
@@ -100,22 +86,19 @@ def index():
 
 @app.route("/api/user", methods=["GET"])
 def get_user():
-    user_id = str(request.args.get("id", ADMIN_ID)).strip()
-    device_id = str(request.args.get("device_id", "")).strip()
+    user_id = str(request.args.get("id", "")).strip()
+    if not user_id:
+        return jsonify({"balance": 0.0, "invites": 0, "verified": False, "completed_tasks": []})
 
     db = load_data()
-    primary_id, user_data = get_or_create_user(db, user_id, device_id)
+    user_data = get_or_create_user(db, user_id)
     save_data(db)
-
-    res = dict(user_data)
-    res["primary_id"] = primary_id
-    return jsonify(res)
+    return jsonify(user_data)
 
 @app.route("/api/verify_membership", methods=["POST"])
 def verify_membership():
     data = request.json or {}
     user_id = str(data.get("user_id", "")).strip()
-    device_id = str(data.get("device_id", "")).strip()
     referrer_id = str(data.get("referrer_id", "")).strip()
 
     if not user_id.isdigit():
@@ -138,16 +121,11 @@ def verify_membership():
         }), 400
 
     db = load_data()
-    primary_id, user_data = get_or_create_user(db, user_id, device_id)
+    user_data = get_or_create_user(db, user_id)
 
-    # ሪፈራል 3 ETB መጨመር (ተመሳሳይ ስልክ ራሱን እንዳይጋብዝ መከልከል)
-    dev_key = device_id if device_id else primary_id
-    if "invited_devices" not in db:
-        db["invited_devices"] = []
-
-    if referrer_id and referrer_id != primary_id and dev_key not in db["invited_devices"]:
-        db["invited_devices"].append(dev_key)
-        ref_primary, ref_user = get_or_create_user(db, referrer_id)
+    if referrer_id and referrer_id.isdigit() and referrer_id != user_id and user_id not in db["invited_users"]:
+        db["invited_users"].append(user_id)
+        ref_user = get_or_create_user(db, referrer_id)
         ref_user["balance"] += 3.0
         ref_user["invites"] = ref_user.get("invites", 0) + 1
 
@@ -158,19 +136,18 @@ def verify_membership():
             f"💵 ጠቅላላ ሂሳብዎ፦ *{ref_user['balance']:.2f} ETB*\n"
             f"👥 ጠቅላላ የጋበዟቸው ሰዎች፦ *{ref_user['invites']}*"
         )
-        send_telegram_message(ref_primary, ref_msg)
+        send_telegram_message(referrer_id, ref_msg)
 
     user_data["verified"] = True
     save_data(db)
 
     return jsonify({"status": "verified", "verified": True, "balance": user_data["balance"]})
 
-# የታስክ ማረጋገጫ (ካልተቀላቀለ በፍጹም 2 ETB አይሰጥም)
+# ታስክ ክሌም ማድረጊያ (ቻናሉን በትክክል ሲቀላቀል ብቻ 2 ETB መስጠት)
 @app.route("/api/task/verify", methods=["POST"])
 def verify_task():
     data = request.json or {}
     user_id = str(data.get("user_id", "")).strip()
-    device_id = str(data.get("device_id", "")).strip()
     task_id = data.get("task_id")
 
     if not user_id.isdigit():
@@ -180,10 +157,10 @@ def verify_task():
         return jsonify({"status": "error", "message": "የማይታወቅ ታስክ!"}), 400
 
     db = load_data()
-    primary_id, user_data = get_or_create_user(db, user_id, device_id)
+    user_data = get_or_create_user(db, user_id)
 
     if task_id in user_data.get("completed_tasks", []):
-        return jsonify({"status": "error", "message": "ይህንን ታስክ አስቀድመው ጨርሰዋል!"}), 400
+        return jsonify({"status": "error", "message": "ይህንን ታስክ አስቀድመው ክሌም አድርገዋል!"}), 400
 
     task_info = TASK_CHANNELS[task_id]
     if not check_member(task_info["channel"], user_id):
@@ -204,14 +181,16 @@ def verify_task():
 @app.route("/api/withdraw", methods=["POST"])
 def withdraw():
     data = request.json or {}
-    user_id = str(data.get("user_id", ADMIN_ID)).strip()
-    device_id = str(data.get("device_id", "")).strip()
+    user_id = str(data.get("user_id", "")).strip()
     amount = float(data.get("amount", 0))
     phone = data.get("phone", "")
     method = data.get("method", "Telebirr")
 
+    if not user_id.isdigit():
+        return jsonify({"status": "error", "message": "መለያ ማረጋገጥ አልተቻለም!"}), 400
+
     db = load_data()
-    primary_id, user_data = get_or_create_user(db, user_id, device_id)
+    user_data = get_or_create_user(db, user_id)
 
     if user_data["balance"] < amount:
         return jsonify({"status": "error", "message": "በቂ ቀሪ ሂሳብ የለዎትም!"}), 400
@@ -221,7 +200,7 @@ def withdraw():
     req_id = int(time.time() * 1000)
     req_item = {
         "id": req_id,
-        "user_id": primary_id,
+        "user_id": user_id,
         "amount": amount,
         "phone": phone,
         "method": method,
@@ -233,7 +212,7 @@ def withdraw():
 
     admin_alert = (
         f"🔔 *አዲስ የገንዘብ ማውጣት ጥያቄ!*\n\n"
-        f"👤 *ተጠቃሚ ID:* `{primary_id}`\n"
+        f"👤 *ተጠቃሚ ID:* `{user_id}`\n"
         f"💰 *መጠን:* {amount} ETB\n"
         f"💳 *ዘዴ:* {method}\n"
         f"📱 *ስልክ:* `{phone}`\n\n"
@@ -245,12 +224,12 @@ def withdraw():
 
 @app.route("/api/user/history", methods=["GET"])
 def get_user_history():
-    user_id = str(request.args.get("user_id", ADMIN_ID)).strip()
-    device_id = str(request.args.get("device_id", "")).strip()
+    user_id = str(request.args.get("user_id", "")).strip()
+    if not user_id.isdigit():
+        return jsonify([])
 
     db = load_data()
-    primary_id, _ = get_or_create_user(db, user_id, device_id)
-    history = [r for r in db["withdraw_requests"] if str(r["user_id"]) == str(primary_id)]
+    history = [r for r in db["withdraw_requests"] if str(r.get("user_id", "")).strip() == user_id]
     return jsonify(history)
 
 @app.route("/api/admin/requests", methods=["GET"])
@@ -286,11 +265,11 @@ def add_balance():
     if admin_id != ADMIN_ID:
         return jsonify({"status": "error", "message": "ያልተፈቀደ አሰራር!"}), 403
 
-    if not target_id or amount <= 0:
-        return jsonify({"status": "error", "message": "እባክዎ ትክክለኛ ID እና መጠን ያስገቡ!"}), 400
+    if not target_id.isdigit() or amount <= 0:
+        return jsonify({"status": "error", "message": "እባክዎ ትክክለኛ የቁጥር ID እና መጠን ያስገቡ!"}), 400
 
     db = load_data()
-    primary_id, target_user = get_or_create_user(db, target_id)
+    target_user = get_or_create_user(db, target_id)
     target_user["balance"] += amount
     save_data(db)
 
@@ -299,7 +278,7 @@ def add_balance():
         f"የአስተዳዳሪው ስጦታ *+{amount:.2f} ETB* ወደ አካውንትዎ ገብቷል!\n"
         f"💵 አጠቃላይ ቀሪ ሂሳብዎ፦ *{target_user['balance']:.2f} ETB*"
     )
-    send_telegram_message(primary_id, alert_msg)
+    send_telegram_message(target_id, alert_msg)
 
     return jsonify({"status": "success", "new_balance": target_user["balance"]})
 
