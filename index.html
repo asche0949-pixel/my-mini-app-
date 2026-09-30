@@ -425,9 +425,9 @@
 
             <!-- TASKS TAB -->
             <div id="tab-tasks" class="tab-content">
-                <h3 style="font-size: 16px;">🎯 Complete Tasks & Claim Reward</h3>
+                <h3 style="font-size: 16px;">🎯 Complete Tasks & Earn</h3>
                 
-                <div class="card">
+                <div class="card" id="card-task-money">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div style="font-size: 24px; background: #1c2b47; padding: 6px; border-radius: 50%;">📢</div>
@@ -444,7 +444,7 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card" id="card-task-tips">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div style="font-size: 24px; background: #1c2b47; padding: 6px; border-radius: 50%;">📢</div>
@@ -614,14 +614,14 @@
             referrerId = localStorage.getItem("pending_referrer") || "";
         }
 
-        let currentBalance = 0.0;
-        let completedTasks = [];
+        // ለዘላለም እንዳይጠፋ ከስልኩ ቋሚ ማስታወሻ መውሰድ
+        let currentBalance = parseFloat(localStorage.getItem(`perm_bal_${currentUserId}`) || "0.0");
+        let completedTasks = JSON.parse(localStorage.getItem(`perm_tasks_${currentUserId}`) || "[]");
 
         if (currentUserId === ADMIN_ID) {
             document.getElementById('adminNavItem').style.display = "flex";
         }
 
-        // ማረጋገጫ ከስልኩ ማስታወሻ ማየት
         const isLocallyVerified = localStorage.getItem(`verified_${currentUserId}`) === "true";
         if (isLocallyVerified) {
             unlockApp();
@@ -649,13 +649,12 @@
                 })
             })
             .then(res => res.json())
-            .then(data => {
+            .then(() => {
                 localStorage.setItem(`verified_${currentUserId}`, "true");
                 localStorage.removeItem("pending_referrer");
                 unlockApp();
             })
             .catch(() => {
-                // ኔትወርክ ቢዘገይም ተጠቃሚው በቀጥታ እንዲያልፍ ማድረግ
                 localStorage.setItem(`verified_${currentUserId}`, "true");
                 unlockApp();
             });
@@ -688,51 +687,79 @@
             }
         }
 
+        function updateTasksUI() {
+            if (completedTasks.includes('task_money_power')) {
+                const b1 = document.getElementById('btn-task-money');
+                if (b1) {
+                    b1.disabled = true;
+                    b1.innerText = "Completed ✓";
+                    b1.style.background = "#172338";
+                    b1.style.color = "#8fa0bc";
+                }
+            }
+            if (completedTasks.includes('task_tips_mickey')) {
+                const b2 = document.getElementById('btn-task-tips');
+                if (b2) {
+                    b2.disabled = true;
+                    b2.innerText = "Completed ✓";
+                    b2.style.background = "#172338";
+                    b2.style.color = "#8fa0bc";
+                }
+            }
+        }
+
+        // ቋሚ ዳታ ከሰርቨር ጋር ማናበብ (Sync)
         function fetchUserData() {
             currentUserId = getUserId();
             if (!currentUserId) return;
 
-            // ከስልክ ማስታወሻ መጀመሪያ ብሩን ማውጣት (እንዳይጠፋ)
-            const cachedBal = localStorage.getItem(`saved_bal_${currentUserId}`);
-            if (cachedBal) {
-                currentBalance = parseFloat(cachedBal);
-                document.getElementById('balance').innerText = currentBalance.toFixed(2);
-            }
+            document.getElementById('balance').innerText = currentBalance.toFixed(2);
+            updateTasksUI();
 
-            fetch(`${API_BASE}/api/user?id=${currentUserId}`)
-                .then(res => res.json())
-                .then(data => {
-                    localStorage.setItem(`verified_${currentUserId}`, "true");
-                    currentBalance = data.balance || 0;
-                    localStorage.setItem(`saved_bal_${currentUserId}`, currentBalance);
-
-                    const invites = data.invites || 0;
-                    completedTasks = data.completed_tasks || [];
-
-                    document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                    document.getElementById('invite-count').innerText = invites;
-                    document.getElementById('invite-earned').innerText = (invites * 3.0).toFixed(2) + " ETB";
-
-                    if (completedTasks.includes('task_money_power')) {
-                        const b1 = document.getElementById('btn-task-money');
-                        b1.disabled = true;
-                        b1.innerText = "Claimed ✓";
-                        b1.style.background = "#172338";
-                    }
-                    if (completedTasks.includes('task_tips_mickey')) {
-                        const b2 = document.getElementById('btn-task-tips');
-                        b2.disabled = true;
-                        b2.innerText = "Claimed ✓";
-                        b2.style.background = "#172338";
-                    }
+            // ሰርቨሩ ቢተኛም እንኳን ብሩንና ታስኮቹን ከስልኩ ቋሚ ማስታወሻ መላክ
+            fetch(`${API_BASE}/api/user`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: currentUserId,
+                    balance: currentBalance,
+                    completed_tasks: completedTasks
                 })
-                .catch(err => console.log(err));
+            })
+            .then(res => res.json())
+            .then(data => {
+                localStorage.setItem(`verified_${currentUserId}`, "true");
+                
+                // ትልቁን ቀሪ ሂሳብ መውሰድ (እንዳይቀንስ)
+                currentBalance = Math.max(currentBalance, data.balance || 0);
+                localStorage.setItem(`perm_bal_${currentUserId}`, currentBalance);
+
+                // ታስኮችን አንድ ላይ ማዋሃድ
+                const mergedTasks = Array.from(new Set([...completedTasks, ...(data.completed_tasks || [])]));
+                completedTasks = mergedTasks;
+                localStorage.setItem(`perm_tasks_${currentUserId}`, JSON.stringify(completedTasks));
+
+                document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                document.getElementById('invite-count').innerText = data.invites || 0;
+                document.getElementById('invite-earned').innerText = ((data.invites || 0) * 3.0).toFixed(2) + " ETB";
+
+                updateTasksUI();
+            })
+            .catch(() => {
+                document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                updateTasksUI();
+            });
         }
 
-        // ታስክ ክሌም ማድረጊያ
+        // ታስክ ክሌም ማድረጊያ (አንዴ ብቻ እንዲሆን ማድረግ)
         function doClaimTask(taskId, btnId) {
             const btn = document.getElementById(btnId);
             currentUserId = getUserId();
+
+            if (completedTasks.includes(taskId)) {
+                alert("ይህንን ታስክ አስቀድመው ወስደዋል!");
+                return;
+            }
 
             btn.innerText = "በማረጋገጥ ላይ...";
             btn.disabled = true;
@@ -746,13 +773,18 @@
             .then(data => {
                 if (data.status === "success") {
                     currentBalance = data.balance;
-                    localStorage.setItem(`saved_bal_${currentUserId}`, currentBalance);
+                    localStorage.setItem(`perm_bal_${currentUserId}`, currentBalance);
+                    
+                    if (!completedTasks.includes(taskId)) {
+                        completedTasks.push(taskId);
+                        localStorage.setItem(`perm_tasks_${currentUserId}`, JSON.stringify(completedTasks));
+                    }
+
                     document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                    btn.innerText = "Claimed ✓";
-                    btn.style.background = "#172338";
-                    alert(`🎉 እንኳን ደስ አለዎት! +${data.reward}.00 ETB ክሌም አድርገዋል!`);
+                    updateTasksUI();
+                    alert(`🎉 እንኳን ደስ አለዎት! +${data.reward}.00 ETB ወስደዋል! ታስኩ ተጠናቋል።`);
                 } else {
-                    alert(data.message || "ቻናሉን አልተቀላቀሉም! እባክዎ መጀመሪያ ቻናሉን ይቀላቀሉ።");
+                    alert(data.message || "ስህተት ተፈጥሯል!");
                     btn.innerText = "🎁 Claim 2 ETB";
                     btn.disabled = false;
                 }
@@ -788,15 +820,14 @@
             currentUserId = getUserId();
             if (!currentUserId) return;
 
-            // ቋሚ የዊዝድሮው ታሪክ ከስልኩ ማውጣት
-            const localHist = JSON.parse(localStorage.getItem(`hist_${currentUserId}`) || "[]");
+            const localHist = JSON.parse(localStorage.getItem(`perm_hist_${currentUserId}`) || "[]");
             displayHistoryItems(localHist);
 
             fetch(`${API_BASE}/api/user/history?user_id=${currentUserId}`)
                 .then(res => res.json())
                 .then(serverHistory => {
                     if (Array.isArray(serverHistory) && serverHistory.length > 0) {
-                        localStorage.setItem(`hist_${currentUserId}`, JSON.stringify(serverHistory));
+                        localStorage.setItem(`perm_hist_${currentUserId}`, JSON.stringify(serverHistory));
                         displayHistoryItems(serverHistory);
                     }
                 })
@@ -868,15 +899,14 @@
                     msgBox.style.color = "#24a1de";
                     msgBox.innerText = "ጥያቄዎ ተልኳል! አድሚኑ አረጋግጦ ይልክልዎታል።";
                     currentBalance = data.balance;
-                    localStorage.setItem(`saved_bal_${currentUserId}`, currentBalance);
+                    localStorage.setItem(`perm_bal_${currentUserId}`, currentBalance);
                     document.getElementById('balance').innerText = currentBalance.toFixed(2);
                     document.getElementById('withdrawAmount').value = "";
                     document.getElementById('withdrawPhone').value = "";
 
-                    // ታሪኩን በስልኩ ላይም ማስቀመጥ (እንዳይጠፋ)
-                    const localHist = JSON.parse(localStorage.getItem(`hist_${currentUserId}`) || "[]");
+                    const localHist = JSON.parse(localStorage.getItem(`perm_hist_${currentUserId}`) || "[]");
                     localHist.push(data.request);
-                    localStorage.setItem(`hist_${currentUserId}`, JSON.stringify(localHist));
+                    localStorage.setItem(`perm_hist_${currentUserId}`, JSON.stringify(localHist));
                     displayHistoryItems(localHist);
                 } else {
                     msgBox.style.color = "#da3633";
